@@ -83,8 +83,9 @@ export async function POST(request: Request) {
         email: user[0].email,
         username: user[0].username,
         roleId: user[0].roleId,
+        tenantId: user[0].tenantId,
         avatar: user[0].avatar,
-        isSurperAdmin: user[0].isSuperAdmin
+        isSuperAdmin: user[0].isSuperAdmin
       },
       process.env.JWT_SECRET || 'secret',
       { expiresIn: '1d' }

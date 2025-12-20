@@ -6,7 +6,9 @@ export interface User {
   email: string;
   username: string;
   avatar: string;
-  roleId: string;
+  roleId: number;
+  tenantId: bigint;
+  isSuperAdmin: boolean;
 }
 
 export interface Session {
@@ -35,7 +37,9 @@ export async function auth(): Promise<Session | null> {
         email: verified.email,
         username: verified.username,
         avatar: verified.avatar,
-        roleId: verified.roleId
+        roleId: verified.roleId,
+        tenantId: BigInt(verified.tenantId || 1),
+        isSuperAdmin: verified.isSuperAdmin || false
       }
     };
   } catch {
@@ -54,7 +58,9 @@ export function verifyToken(token: string): User | null {
       email: verified.email,
       username: verified.username,
       avatar: verified.avatar,
-      roleId: verified.roleId
+      roleId: verified.roleId,
+      tenantId: BigInt(verified.tenantId || 1),
+      isSuperAdmin: verified.isSuperAdmin || false
     };
   } catch {
     return null;

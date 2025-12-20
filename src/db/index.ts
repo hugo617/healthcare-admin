@@ -2,6 +2,9 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import pg from 'pg';
 import * as dotenv from 'dotenv';
 
+// 导出所有 schema
+export * from './schema';
+
 dotenv.config();
 
 // 使用用户的 DATABASE_URL
