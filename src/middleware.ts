@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { identifyTenant, TenantContext } from '@/lib/tenant-context';
 import { getToken } from 'next-auth/jwt';
 
 /**
@@ -62,38 +61,50 @@ function isProtectedRoute(pathname: string): boolean {
 }
 
 /**
+ * 从请求中提取租户ID（不进行数据库查询）
+ * @param request Next.js请求对象
+ * @returns 租户ID或null
+ */
+function extractTenantFromRequest(request: NextRequest): string | null {
+  // 1. 从URL查询参数获取租户代码
+  const { searchParams } = new URL(request.url);
+  const tenantCode = searchParams.get('tenant');
+  if (tenantCode) {
+    return tenantCode;
+  }
+
+  // 2. 从子域名获取租户代码
+  const hostname = request.headers.get('host');
+  if (hostname) {
+    const parts = hostname.split('.');
+    if (parts.length >= 2) {
+      const subdomain = parts[0];
+      if (subdomain && subdomain !== 'www' && subdomain !== 'app') {
+        return subdomain;
+      }
+    }
+  }
+
+  // 3. 从请求头获取租户ID
+  const tenantIdHeader = request.headers.get('x-tenant-id');
+  if (tenantIdHeader) {
+    return tenantIdHeader;
+  }
+
+  return null;
+}
+
+/**
  * 中间件主函数
  */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   try {
-    // 1. 租户识别和上下文设置
-    const tenantResult = await identifyTenant(request);
+    // 1. 提取租户信息（不进行数据库查询）
+    const tenantCode = extractTenantFromRequest(request);
 
-    if (tenantResult.tenantId && tenantResult.tenant) {
-      // 设置租户上下文
-      await TenantContext.setCurrentTenant(tenantResult.tenantId);
-
-      // 添加租户信息到响应头
-      const response = NextResponse.next();
-      response.headers.set('x-tenant-id', tenantResult.tenantId.toString());
-      response.headers.set('x-tenant-code', tenantResult.tenant.code);
-      response.headers.set('x-tenant-name', tenantResult.tenant.name);
-      response.headers.set('x-tenant-method', tenantResult.method || 'unknown');
-
-      // 如果是通过子域名访问，重定向到主域名（可选）
-      if (tenantResult.method === 'subdomain' && process.env.REDIRECT_SUBDOMAIN === 'true') {
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-        const url = new URL(pathname, baseUrl);
-        url.searchParams.set('tenant', tenantResult.tenant.code);
-        return NextResponse.redirect(url);
-      }
-
-      return response;
-    }
-
-    // 2. 身份验证检查
+    // 身份验证检查
     if (isProtectedRoute(pathname)) {
       const token = await getToken({
         req: request,
@@ -107,25 +118,36 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(loginUrl);
       }
 
-      // 3. 管理员权限检查
+      // 管理员权限检查
       if (isAdminRoute(pathname) && !token.isAdmin) {
         // 重定向到无权限页面
         return NextResponse.redirect(new URL('/403', request.url));
       }
 
-      // 4. 用户租户权限检查
-      if (tenantResult.tenantId) {
-        // 这里需要检查用户是否属于当前租户
-        // 由于middleware中无法访问数据库，这个检查在API层进行
-        const response = NextResponse.next();
-        response.headers.set('x-user-id', token.sub || '');
-        response.headers.set('x-user-tenant-id', (token.tenantId as string) || '');
-        return response;
+      // 创建响应并添加租户和用户信息到响应头
+      const response = NextResponse.next();
+
+      if (tenantCode) {
+        response.headers.set('x-tenant-code', tenantCode);
       }
+
+      response.headers.set('x-user-id', token.sub || '');
+      response.headers.set('x-user-email', token.email || '');
+
+      if (token.tenantId) {
+        response.headers.set('x-user-tenant-id', token.tenantId as string);
+      }
+
+      return response;
     }
 
-    // 默认继续处理
-    return NextResponse.next();
+    // 对于非保护路由，只添加租户信息
+    const response = NextResponse.next();
+    if (tenantCode) {
+      response.headers.set('x-tenant-code', tenantCode);
+    }
+
+    return response;
 
   } catch (error) {
     console.error('Middleware error:', error);
@@ -133,7 +155,7 @@ export async function middleware(request: NextRequest) {
     // 租户识别失败时的处理
     if (isProtectedRoute(pathname)) {
       // 重定向到错误页面或登录页面
-      return NextResponse.redirect(new URL('/login?error=tenant_not_found', request.url));
+      return NextResponse.redirect(new URL('/login?error=middleware_error', request.url));
     }
 
     return NextResponse.next();

@@ -277,23 +277,23 @@ export default function Home() {
             </div>
             <div className='flex gap-6'>
               <a
-                href='https://blog.guizimo.com'
-                target='_blank'
-                className='text-muted-foreground hover:text-primary text-sm transition-colors duration-200'
+                // href='https://blog.guizimo.com'
+                // target='_blank'
+                // className='text-muted-foreground hover:text-primary text-sm transition-colors duration-200'
               >
                 博客
               </a>
               <a
-                href='https://github.com/guizimo'
-                target='_blank'
-                className='text-muted-foreground hover:text-primary text-sm transition-colors duration-200'
+                // href='https://github.com/guizimo'
+                // target='_blank'
+                // className='text-muted-foreground hover:text-primary text-sm transition-colors duration-200'
               >
                 GitHub
               </a>
               <a
-                href='https://github.com/guizimo/n-admin/issues'
-                target='_blank'
-                className='text-muted-foreground hover:text-primary text-sm transition-colors duration-200'
+                // href='https://github.com/guizimo/n-admin/issues'
+                // target='_blank'
+                // className='text-muted-foreground hover:text-primary text-sm transition-colors duration-200'
               >
                 反馈
               </a>
