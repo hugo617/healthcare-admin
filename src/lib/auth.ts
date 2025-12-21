@@ -72,12 +72,27 @@ export function verifyToken(token: string): User | null {
  */
 export function getCurrentUser(request: Request): User | null {
   try {
-    const token = request.headers.get('cookie')?.match(/token=([^;]+)/)?.[1];
+    // 尝试从 Cookie header 获取 token
+    const cookieHeader = request.headers.get('cookie');
+    if (!cookieHeader) {
+      return null;
+    }
+
+    // 解析 cookies
+    const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+      const [name, value] = cookie.trim().split('=');
+      acc[name] = value;
+      return acc;
+    }, {} as Record<string, string>);
+
+    const token = cookies.token;
     if (!token) {
       return null;
     }
+
     return verifyToken(token);
-  } catch {
+  } catch (error) {
+    console.error('Error parsing cookie:', error);
     return null;
   }
 }

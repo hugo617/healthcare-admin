@@ -7,7 +7,8 @@ import {
   Cog,
   Users,
   Shield,
-  Key
+  Key,
+  Building
 } from 'lucide-react';
 
 // 业务导航列表
@@ -70,6 +71,18 @@ export const systemNavList: NavItem[] = [
           searchShortcut: ['p'],
           searchSection: '账户管理',
           searchPriority: 4
+        }
+      },
+      {
+        title: '租户管理',
+        url: '/dashboard/account/tenant',
+        description: '租户管理',
+        icon: Building,
+        searchConfig: {
+          keywords: 'tenant management 租户 管理 tenant',
+          searchShortcut: ['t'],
+          searchSection: '账户管理',
+          searchPriority: 5
         }
       }
     ]

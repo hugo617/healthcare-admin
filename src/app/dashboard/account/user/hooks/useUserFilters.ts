@@ -23,6 +23,7 @@ export function useUserFilters() {
 
     const urlFilters: UserFilters = {
       username: searchParams.get('username') || '',
+      phone: searchParams.get('phone') || '',
       email: searchParams.get('email') || '',
       roleId: searchParams.get('roleId') || '',
       status: (searchParams.get('status') as UserFilters['status']) || 'all',
@@ -102,6 +103,7 @@ export function useUserFilters() {
   const clearFilters = useCallback(() => {
     searchFilters({
       username: '',
+      phone: '',
       email: '',
       roleId: '',
       status: 'all',
@@ -114,7 +116,8 @@ export function useUserFilters() {
    * 检查是否有激活的筛选条件
    */
   const hasActiveFilters = Boolean(
-    filters.username ||
+      filters.username ||
+      filters.phone ||
       filters.email ||
       filters.roleId ||
       (filters.status && filters.status !== 'all') ||

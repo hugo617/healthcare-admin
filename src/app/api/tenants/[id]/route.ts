@@ -4,6 +4,7 @@ import { tenants, systemLogs } from '@/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { TenantContext } from '@/lib/tenant-context';
 import { requirePermission } from '@/lib/permission-guard';
+import { PERMISSIONS } from '@/lib/permissions';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
 
@@ -19,7 +20,7 @@ export async function GET(
 ) {
   try {
     // 检查权限
-    await requirePermission('tenant:read', undefined, request);
+    await requirePermission(PERMISSIONS.TENANT.READ, undefined, request);
 
     const resolvedParams = await params;
     const tenantId = BigInt(resolvedParams.id);
@@ -76,7 +77,7 @@ export async function PUT(
 ) {
   try {
     // 检查权限
-    await requirePermission('tenant:update', undefined, request);
+    await requirePermission(PERMISSIONS.TENANT.UPDATE, undefined, request);
 
     const resolvedParams = await params;
     const tenantId = BigInt(resolvedParams.id);
@@ -341,7 +342,7 @@ export async function DELETE(
 ) {
   try {
     // 检查权限
-    await requirePermission('tenant:delete', undefined, request);
+    await requirePermission(PERMISSIONS.TENANT.DELETE, undefined, request);
 
     const resolvedParams = await params;
     const tenantId = BigInt(resolvedParams.id);

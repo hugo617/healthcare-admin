@@ -1,6 +1,7 @@
 export interface User {
   id: number;
   username: string;
+  phone?: string;
   email: string;
   roleId: string;
   createdAt: string;
@@ -20,6 +21,7 @@ export interface Role {
 
 export interface UserFilters {
   username?: string;
+  phone?: string;
   email?: string;
   roleId?: string;
   status?: 'all' | 'active' | 'disabled';
@@ -37,6 +39,7 @@ export interface PaginationInfo {
 
 export interface UserFormData {
   username: string;
+  phone: string;
   email: string;
   password?: string;
   roleId: string;

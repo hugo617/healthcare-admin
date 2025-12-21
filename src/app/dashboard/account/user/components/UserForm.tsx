@@ -24,6 +24,7 @@ export function UserForm({ initialData, onSubmit, onCancel }: UserFormProps) {
   const [roles, setRoles] = useState([]);
   const [formData, setFormData] = useState({
     username: initialData?.username || '',
+    phone: initialData?.phone || '',
     email: initialData?.email || '',
     password: '',
     roleId: initialData?.roleId ? String(initialData.roleId) : '',
@@ -80,6 +81,17 @@ export function UserForm({ initialData, onSubmit, onCancel }: UserFormProps) {
           value={formData.username}
           onChange={handleChange}
           placeholder='请输入用户名'
+          required
+        />
+      </div>
+      <div className='grid gap-2'>
+        <Label htmlFor='phone'>手机号码</Label>
+        <Input
+          id='phone'
+          name='phone'
+          value={formData.phone}
+          onChange={handleChange}
+          placeholder='请输入手机号码'
           required
         />
       </div>

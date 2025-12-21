@@ -8,7 +8,8 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
   const defaultOptions: RequestInit = {
     headers: {
       'Content-Type': 'application/json'
-    }
+    },
+    credentials: 'include' // 确保包含cookies
   };
 
   const config = { ...defaultOptions, ...options };

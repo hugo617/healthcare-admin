@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { verifyToken } from '@/lib/auth';
 
 /**
  * 受保护的路由列表
@@ -106,12 +106,18 @@ export async function middleware(request: NextRequest) {
 
     // 身份验证检查
     if (isProtectedRoute(pathname)) {
-      const token = await getToken({
-        req: request,
-        secret: process.env.NEXTAUTH_SECRET
-      });
+      // 从cookie中获取token
+      const tokenCookie = request.cookies.get('token');
+      if (!tokenCookie) {
+        // 重定向到登录页面
+        const loginUrl = new URL('/login', request.url);
+        loginUrl.searchParams.set('callbackUrl', pathname);
+        return NextResponse.redirect(loginUrl);
+      }
 
-      if (!token) {
+      // 验证token
+      const user = verifyToken(tokenCookie.value);
+      if (!user) {
         // 重定向到登录页面
         const loginUrl = new URL('/login', request.url);
         loginUrl.searchParams.set('callbackUrl', pathname);
@@ -119,7 +125,7 @@ export async function middleware(request: NextRequest) {
       }
 
       // 管理员权限检查
-      if (isAdminRoute(pathname) && !token.isAdmin) {
+      if (isAdminRoute(pathname) && !user.isSuperAdmin) {
         // 重定向到无权限页面
         return NextResponse.redirect(new URL('/403', request.url));
       }
@@ -131,12 +137,9 @@ export async function middleware(request: NextRequest) {
         response.headers.set('x-tenant-code', tenantCode);
       }
 
-      response.headers.set('x-user-id', token.sub || '');
-      response.headers.set('x-user-email', token.email || '');
-
-      if (token.tenantId) {
-        response.headers.set('x-user-tenant-id', token.tenantId as string);
-      }
+      response.headers.set('x-user-id', user.id.toString());
+      response.headers.set('x-user-email', user.email);
+      response.headers.set('x-user-tenant-id', user.tenantId.toString());
 
       return response;
     }

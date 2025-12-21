@@ -52,8 +52,23 @@ export async function getUserPermissions(userId?: number): Promise<string[]> {
 
     // 如果是超级管理员，返回所有权限
     if (userInfo.isSuperAdmin) {
-      const allPermissions = await db.select().from(permissions);
-      return allPermissions.map((p) => p.code);
+      const allPermissions = await db.select({
+        code: permissions.code
+      }).from(permissions);
+      const dbPermissions = allPermissions.map((p) => p.code);
+
+      // 硬编码添加租户管理权限（因为数据库中可能没有这些权限）
+      const tenantPermissions = [
+        'admin.tenant',
+        'admin.tenant.read',
+        'admin.tenant.create',
+        'admin.tenant.update',
+        'admin.tenant.delete',
+        'admin.tenant.config'
+      ];
+
+      // 合并权限并去重
+      return [...new Set([...dbPermissions, ...tenantPermissions])];
     }
 
     // 获取角色权限

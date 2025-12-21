@@ -54,6 +54,7 @@ export function UserFilters({
   // 本地表单状态
   const [formData, setFormData] = useState<UserFiltersType>({
     username: '',
+    phone: '',
     email: '',
     roleId: '',
     status: 'all',
@@ -69,6 +70,7 @@ export function UserFilters({
   useEffect(() => {
     setFormData({
       username: filters.username || '',
+      phone: filters.phone || '',
       email: filters.email || '',
       roleId: filters.roleId || '',
       status: filters.status || 'all',
@@ -104,6 +106,7 @@ export function UserFilters({
   const handleReset = () => {
     const resetData = {
       username: '',
+      phone: '',
       email: '',
       roleId: '',
       status: 'all' as const,
@@ -129,7 +132,8 @@ export function UserFilters({
    * 检查是否有激活的筛选条件
    */
   const hasActiveFilters = Boolean(
-    formData.username ||
+      formData.username ||
+      formData.phone ||
       formData.email ||
       formData.roleId ||
       (formData.status && formData.status !== 'all') ||
@@ -203,6 +207,15 @@ export function UserFilters({
             placeholder='请输入用户名'
             value={formData.username || ''}
             onChange={(e) => updateFormField('username', e.target.value)}
+            onKeyDown={handleKeyPress}
+          />
+        </div>
+        <div className='space-y-2'>
+          <Label>手机号码</Label>
+          <Input
+            placeholder='请输入手机号码'
+            value={formData.phone || ''}
+            onChange={(e) => updateFormField('phone', e.target.value)}
             onKeyDown={handleKeyPress}
           />
         </div>

@@ -61,6 +61,13 @@ export const useAuthStore = create<AuthState>()(
           return;
         }
 
+        // 如果已经有session和权限数据，直接标记为已初始化
+        if (state.session?.user && state.permissions.length > 0) {
+          set({ isInitialized: true, loading: false, permissionsLoading: false });
+          hasEverInitialized = true;
+          return;
+        }
+
         set({ loading: true, isInitialized: true });
         hasEverInitialized = true;
 

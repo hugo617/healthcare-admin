@@ -4,6 +4,7 @@ import { tenants, systemLogs } from '@/db/schema';
 import { eq, ilike, and, sql, count, desc, asc } from 'drizzle-orm';
 import { Tenant, NewTenant } from '@/db/schema';
 import { requirePermission } from '@/lib/permission-guard';
+import { PERMISSIONS } from '@/lib/permissions';
 import { z } from 'zod';
 
 /**
@@ -39,7 +40,7 @@ const queryTenantSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     // 检查权限（只有超级管理员或系统管理员可以查看所有租户）
-    await requirePermission('tenant:read', undefined, request);
+    await requirePermission(PERMISSIONS.TENANT.READ, undefined, request);
 
     const { searchParams } = new URL(request.url);
 
@@ -172,7 +173,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // 检查权限
-    await requirePermission('tenant:create', undefined, request);
+    await requirePermission(PERMISSIONS.TENANT.CREATE, undefined, request);
 
     const body = await request.json();
 

@@ -50,7 +50,7 @@ export async function requirePermission(
   }
 
   // 检查基础权限
-  const hasPermission = await checkUserPermission(session.user.id, permissionCode);
+  const hasPermission = await checkUserPermission(session.user.id, permissionCode, session.user.tenantId);
 
   if (!hasPermission) {
     throw new ForbiddenError(`Permission required: ${permissionCode}`);
@@ -78,12 +78,21 @@ export async function requirePermission(
  */
 async function checkUserPermission(
   userId: number,
-  permissionCode: string
+  permissionCode: string,
+  tenantId?: bigint
 ): Promise<boolean> {
   try {
-    // 获取当前租户ID
-    const tenantId = TenantContext.getCurrentTenantId();
-    if (!tenantId) {
+    // 如果没有提供租户ID，尝试从当前上下文获取
+    const currentTenantId = tenantId || TenantContext.getCurrentTenantId();
+
+    // 如果是系统级权限（如租户管理），不需要租户上下文
+    const isSystemPermission = permissionCode.startsWith('admin.');
+    if (isSystemPermission && !currentTenantId) {
+      // 对于系统级权限，直接检查用户是否有相应权限，不依赖租户上下文
+      return await checkSystemPermission(userId, permissionCode);
+    }
+
+    if (!currentTenantId) {
       console.warn('No tenant context set for permission check');
       return false;
     }
@@ -97,7 +106,7 @@ async function checkUserPermission(
       .innerJoin(roles, eq(users.roleId, roles.id))
       .where(and(
         eq(users.id, userId),
-        eq(users.tenantId, tenantId)
+        eq(users.tenantId, currentTenantId)
       ))
       .limit(1);
 
@@ -118,7 +127,7 @@ async function checkUserPermission(
       .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
       .where(and(
         eq(rolePermissions.roleId, roleId),
-        eq(rolePermissions.tenantId, tenantId),
+        eq(rolePermissions.tenantId, currentTenantId),
         eq(permissions.status, 'active')
       ));
 
@@ -149,6 +158,33 @@ async function checkDataPermission(
 
   // 暂时返回 true，后续完善
   return true;
+}
+
+/**
+ * 检查系统级权限（不依赖租户上下文）
+ * @param userId 用户ID
+ * @param permissionCode 权限代码
+ * @returns 是否有权限
+ */
+async function checkSystemPermission(
+  userId: number,
+  permissionCode: string
+): Promise<boolean> {
+  try {
+    // 对于系统级权限，检查用户是否为超级管理员
+    const superAdminCheck = await isSuperAdmin(userId);
+    if (superAdminCheck) {
+      return true;
+    }
+
+    // 对于非超级管理员，检查是否有相应的系统权限
+    // 这里可以根据实际需求实现更复杂的权限检查逻辑
+    // 暂时返回false，只有超级管理员有系统级权限
+    return false;
+  } catch (error) {
+    console.error('Error checking system permission:', error);
+    return false;
+  }
 }
 
 /**

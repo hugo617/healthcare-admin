@@ -43,6 +43,7 @@ export const STATUS_MAP = {
  */
 export const DEFAULT_FILTERS = {
   username: '',
+  phone: '',
   email: '',
   roleId: '',
   status: 'all' as const,
@@ -63,6 +64,11 @@ export const TABLE_COLUMNS = [
   {
     key: 'username',
     title: '用户名',
+    className: 'font-medium'
+  },
+  {
+    key: 'phone',
+    title: '手机号码',
     className: 'font-medium'
   },
   {

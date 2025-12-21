@@ -12,6 +12,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const username = searchParams.get('username');
     const email = searchParams.get('email');
+    const phone = searchParams.get('phone');
     const roleId = searchParams.get('roleId');
     const status = searchParams.get('status');
     const startDate = searchParams.get('startDate');
@@ -28,6 +29,10 @@ export async function GET(request: Request) {
 
     if (email) {
       conditions.push(like(users.email, `%${email}%`));
+    }
+
+    if (phone) {
+      conditions.push(like(users.phone, `%${phone}%`));
     }
 
     if (roleId) {
@@ -50,6 +55,7 @@ export async function GET(request: Request) {
       .select({
         id: users.id,
         email: users.email,
+        phone: users.phone,
         username: users.username,
         roleId: users.roleId,
         avatar: users.avatar,
