@@ -3,6 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthManager } from '@/lib/auth';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import SignatureModal from '@/components/SignatureModal';
+import '@/components/SignatureModal.css';
 import './service-archive.css';
 
 interface ServiceArchiveData {
@@ -43,15 +47,13 @@ interface ServiceArchiveData {
   subjectiveDemand: string;
   signature1: {
     customer: string;
-    year: string;
-    month: string;
-    day: string;
+    signature: string; // Base64格式的签名图片
+    date: string;
   };
   signature2: {
     customer: string;
-    year: string;
-    month: string;
-    day: string;
+    signature: string; // Base64格式的签名图片
+    date: string;
   };
   footer: {
     focusTopics: {
@@ -108,15 +110,13 @@ const defaultData: ServiceArchiveData = {
   subjectiveDemand: '',
   signature1: {
     customer: '',
-    year: '',
-    month: '',
-    day: '',
+    signature: '',
+    date: '',
   },
   signature2: {
     customer: '',
-    year: '',
-    month: '',
-    day: '',
+    signature: '',
+    date: '',
   },
   footer: {
     focusTopics: {
@@ -145,6 +145,10 @@ export default function ServiceArchivePage() {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [tempData, setTempData] = useState<ServiceArchiveData>(defaultData);
+  const [signatureModal, setSignatureModal] = useState({
+    isOpen: false,
+    signatureKey: '' as 'signature1' | 'signature2' | null,
+  });
 
   useEffect(() => {
     if (!authManager.requireAuth()) {
@@ -179,7 +183,23 @@ export default function ServiceArchivePage() {
           },
           healthHistory: {
             ...defaultData.healthHistory,
+            surgeryHistory: {
+              location: '阑尾',
+              time: '2024-06-15',
+            },
+            recentCheckup: {
+              time: '2024-12-01',
+              result: '一切正常',
+            },
             allergy: 'no',
+          },
+          signature1: {
+            customer: '张三',
+            date: '2024-12-25',
+          },
+          signature2: {
+            customer: '张三',
+            date: '2024-12-25',
           },
           footer: {
             ...defaultData.footer,
@@ -255,6 +275,32 @@ export default function ServiceArchivePage() {
     setTimeout(() => setShowToast(false), 2000);
   };
 
+  const openSignatureModal = (signatureKey: 'signature1' | 'signature2') => {
+    if (!isEditing) {
+      setShowToast(true);
+      setToastMessage('请先点击更新按钮进入编辑模式');
+      setTimeout(() => setShowToast(false), 2000);
+      return;
+    }
+    setSignatureModal({
+      isOpen: true,
+      signatureKey,
+    });
+  };
+
+  const closeSignatureModal = () => {
+    setSignatureModal({
+      isOpen: false,
+      signatureKey: null,
+    });
+  };
+
+  const handleSignatureConfirm = (signatureData: string) => {
+    if (signatureModal.signatureKey) {
+      updateData(`${signatureModal.signatureKey}.signature`, signatureData);
+    }
+  };
+
   const updateData = (path: string, value: any) => {
     setData((prevData) => {
       const keys = path.split('.');
@@ -271,6 +317,71 @@ export default function ServiceArchivePage() {
       current[keys[keys.length - 1]] = value;
       return newData;
     });
+  };
+
+  // 自定义日期输入组件
+  const DateInput = ({ value, onChange, disabled, placeholder, className }: {
+    value: string;
+    onChange: (date: string) => void;
+    disabled: boolean;
+    placeholder?: string;
+    className?: string;
+  }) => {
+    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+
+    useEffect(() => {
+      if (value) {
+        const date = new Date(value);
+        if (!isNaN(date.getTime())) {
+          setSelectedDate(date);
+        }
+      }
+    }, [value]);
+
+    const handleChange = (date: Date | null) => {
+      setSelectedDate(date);
+      if (date) {
+        // 使用本地时间格式化,避免时区问题
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const formattedDate = `${year}-${month}-${day}`; // YYYY-MM-DD 格式
+        onChange(formattedDate);
+      } else {
+        onChange('');
+      }
+    };
+
+    const formatDateDisplay = (date: Date | null) => {
+      if (!date) return '';
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    return (
+      <div className="date-input-wrapper">
+        <DatePicker
+          selected={selectedDate}
+          onChange={handleChange}
+          disabled={disabled}
+          placeholderText={placeholder || '选择日期'}
+          dateFormat="yyyy-MM-dd"
+          customInput={
+            <input
+              type="text"
+              className={`input-line ${className || ''}`}
+              value={formatDateDisplay(selectedDate)}
+              disabled={disabled}
+              placeholder={placeholder || '选择日期'}
+              readOnly
+              style={{ border: 'none', borderBottom: '1px solid var(--border-line)' }}
+            />
+          }
+        />
+      </div>
+    );
   };
 
   if (isLoading) {
@@ -607,12 +718,12 @@ export default function ServiceArchivePage() {
                 disabled={!isEditing}
               />
               {' '}时间：
-              <input
-                type="text"
-                className="input-line input-md"
+              <DateInput
                 value={data.healthHistory.surgeryHistory.time}
-                onChange={(e) => updateData('healthHistory.surgeryHistory.time', e.target.value)}
+                onChange={(date) => updateData('healthHistory.surgeryHistory.time', date)}
                 disabled={!isEditing}
+                placeholder="选择日期"
+                className="input-line input-date"
               />
               )
             </div>
@@ -683,12 +794,12 @@ export default function ServiceArchivePage() {
               />
               <span style={{ margin: '0 5px' }}></span>
               近期医院检查(时间:
-              <input
-                type="text"
-                className="input-line input-md"
+              <DateInput
                 value={data.healthHistory.recentCheckup.time}
-                onChange={(e) => updateData('healthHistory.recentCheckup.time', e.target.value)}
+                onChange={(date) => updateData('healthHistory.recentCheckup.time', date)}
                 disabled={!isEditing}
+                placeholder="选择日期"
+                className="input-line input-date"
               />
               {' '}诊断结果:
               <input
@@ -744,40 +855,44 @@ export default function ServiceArchivePage() {
             <div className="signature-area">
               <div className="sign-item">
                 客户签名:
-                <input
-                  type="text"
-                  className="input-line input-md"
-                  value={data.signature1.customer}
-                  onChange={(e) => updateData('signature1.customer', e.target.value)}
-                  disabled={!isEditing}
-                />
+                {data.signature1.signature ? (
+                  <div
+                    className="signature-preview"
+                    onClick={() => openSignatureModal('signature1')}
+                    title="点击重新签名"
+                  >
+                    <img src={data.signature1.signature} alt="客户签名" />
+                  </div>
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      className="input-line input-md"
+                      value={data.signature1.customer}
+                      onChange={(e) => updateData('signature1.customer', e.target.value)}
+                      disabled={!isEditing}
+                      placeholder="输入姓名"
+                    />
+                    <button
+                      type="button"
+                      className="signature-trigger-btn"
+                      onClick={() => openSignatureModal('signature1')}
+                      disabled={!isEditing}
+                    >
+                      ✍️ 手写签名
+                    </button>
+                  </>
+                )}
               </div>
               <div className="sign-item">
                 日期:
-                <input
-                  type="text"
-                  className="input-line input-sm"
-                  value={data.signature1.year}
-                  onChange={(e) => updateData('signature1.year', e.target.value)}
+                <DateInput
+                  value={data.signature1.date}
+                  onChange={(date) => updateData('signature1.date', date)}
                   disabled={!isEditing}
+                  placeholder="选择日期"
+                  className="input-line input-date"
                 />
-                年
-                <input
-                  type="text"
-                  className="input-line input-sm"
-                  value={data.signature1.month}
-                  onChange={(e) => updateData('signature1.month', e.target.value)}
-                  disabled={!isEditing}
-                />
-                月
-                <input
-                  type="text"
-                  className="input-line input-sm"
-                  value={data.signature1.day}
-                  onChange={(e) => updateData('signature1.day', e.target.value)}
-                  disabled={!isEditing}
-                />
-                日
               </div>
             </div>
           </div>
@@ -790,40 +905,44 @@ export default function ServiceArchivePage() {
             <div className="signature-area">
               <div className="sign-item">
                 客户签名:
-                <input
-                  type="text"
-                  className="input-line input-md"
-                  value={data.signature2.customer}
-                  onChange={(e) => updateData('signature2.customer', e.target.value)}
-                  disabled={!isEditing}
-                />
+                {data.signature2.signature ? (
+                  <div
+                    className="signature-preview"
+                    onClick={() => openSignatureModal('signature2')}
+                    title="点击重新签名"
+                  >
+                    <img src={data.signature2.signature} alt="客户签名" />
+                  </div>
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      className="input-line input-md"
+                      value={data.signature2.customer}
+                      onChange={(e) => updateData('signature2.customer', e.target.value)}
+                      disabled={!isEditing}
+                      placeholder="输入姓名"
+                    />
+                    <button
+                      type="button"
+                      className="signature-trigger-btn"
+                      onClick={() => openSignatureModal('signature2')}
+                      disabled={!isEditing}
+                    >
+                      ✍️ 手写签名
+                    </button>
+                  </>
+                )}
               </div>
               <div className="sign-item">
                 日期:
-                <input
-                  type="text"
-                  className="input-line input-sm"
-                  value={data.signature2.year}
-                  onChange={(e) => updateData('signature2.year', e.target.value)}
+                <DateInput
+                  value={data.signature2.date}
+                  onChange={(date) => updateData('signature2.date', date)}
                   disabled={!isEditing}
+                  placeholder="选择日期"
+                  className="input-line input-date"
                 />
-                年
-                <input
-                  type="text"
-                  className="input-line input-sm"
-                  value={data.signature2.month}
-                  onChange={(e) => updateData('signature2.month', e.target.value)}
-                  disabled={!isEditing}
-                />
-                月
-                <input
-                  type="text"
-                  className="input-line input-sm"
-                  value={data.signature2.day}
-                  onChange={(e) => updateData('signature2.day', e.target.value)}
-                  disabled={!isEditing}
-                />
-                日
               </div>
             </div>
           </div>
@@ -985,6 +1104,23 @@ export default function ServiceArchivePage() {
           {toastMessage}
         </div>
       )}
+
+      {/* 签名模态框 */}
+      <SignatureModal
+        isOpen={signatureModal.isOpen}
+        onClose={closeSignatureModal}
+        onConfirm={handleSignatureConfirm}
+        title={
+          signatureModal.signatureKey === 'signature1'
+            ? '禁忌症告知 - 客户签名'
+            : '数据授权 - 客户签名'
+        }
+        existingSignature={
+          signatureModal.signatureKey
+            ? data[signatureModal.signatureKey].signature
+            : undefined
+        }
+      />
     </div>
   );
 }

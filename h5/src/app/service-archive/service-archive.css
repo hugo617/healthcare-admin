@@ -118,6 +118,12 @@ h1 {
 .input-sm { width: 40px; }
 .input-md { width: 80px; }
 .input-lg { width: 150px; }
+/* 日期输入框 - 足够显示 YYYY-MM-DD 格式 */
+.input-date {
+  width: 120px;
+  min-width: 120px;
+  max-width: 120px;
+}
 
 /* 复选框和单选框样式 */
 input[type="checkbox"], input[type="radio"] {
@@ -292,9 +298,66 @@ label:has(input[type="radio"]:disabled):hover {
     margin-top: 10px;
     flex-wrap: wrap;
 }
+
 .sign-item {
     margin-left: 20px;
     white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 签名触发按钮 */
+.signature-trigger-btn {
+    padding: 6px 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.signature-trigger-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.signature-trigger-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* 签名预览 */
+.signature-preview {
+    width: 150px;
+    height: 60px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 4px;
+    background-color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    overflow: hidden;
+}
+
+.signature-preview:hover {
+    border-color: #667eea;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+}
+
+.signature-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
 }
 
 /* ----- 底部区域 ----- */
@@ -344,4 +407,206 @@ textarea {
 
 .animate-fade-in {
     animation: fadeIn 0.3s ease-out;
+}
+
+/* ----- 日期选择器样式 ----- */
+.date-input-wrapper {
+    display: inline-block;
+}
+
+/* 移除DatePicker wrapper和所有内部元素的边框 */
+.date-input-wrapper *,
+.date-input-wrapper *::before,
+.date-input-wrapper *::after {
+    box-sizing: border-box;
+}
+
+/* 移除所有DatePicker相关元素的边框 */
+.date-input-wrapper .react-datepicker-wrapper,
+.date-input-wrapper .react-datepicker__input-container,
+.date-input-wrapper .react-datepicker__input-container input {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* 只保留自定义input的底部边框 */
+.date-input-wrapper input.input-line {
+    cursor: pointer;
+    background-color: transparent;
+    border: none !important;
+    border-bottom: 1px solid var(--border-line) !important;
+}
+
+.date-input-wrapper input.input-line:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* 编辑模式下的悬停效果 */
+.editing-mode .date-input-wrapper input.input-line:not(:disabled):hover {
+    border-bottom-color: #666 !important;
+}
+
+.editing-mode .date-input-wrapper input.input-line:not(:disabled):focus {
+    border-bottom: 2px solid #d32f2f !important;
+    box-shadow: 0 1px 0 0 rgba(211, 47, 47, 0.1) !important;
+}
+
+/* React DatePicker 弹出层样式 */
+.react-datepicker-wrapper {
+    display: block;
+}
+
+.react-datepicker__input-container {
+    display: block;
+}
+
+.react-datepicker {
+    font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background-color: white;
+    padding: 8px;
+}
+
+.react-datepicker__header {
+    background-color: #f5f5f5;
+    border-bottom: 1px solid #e0e0e0;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    padding: 10px 0;
+}
+
+.react-datepicker__current-month {
+    font-weight: 600;
+    font-size: 15px;
+    color: #333;
+}
+
+.react-datepicker__triangle {
+    display: none;
+}
+
+.react-datepicker__day-names {
+    display: flex;
+    margin-bottom: 5px;
+}
+
+.react-datepicker__day-name {
+    width: 32px;
+    line-height: 32px;
+    margin: 0 2px;
+    text-align: center;
+    font-size: 12px;
+    color: #666;
+    font-weight: 500;
+}
+
+.react-datepicker__month {
+    margin: 0;
+    padding: 0;
+}
+
+.react-datepicker__week {
+    display: flex;
+}
+
+.react-datepicker__day {
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
+    margin: 2px;
+    text-align: center;
+    cursor: pointer;
+    border-radius: 4px;
+    color: #333;
+    transition: all 0.2s ease;
+}
+
+.react-datepicker__day:hover {
+    background-color: #e3f2fd;
+    border-radius: 4px;
+}
+
+.react-datepicker__day--selected {
+    background-color: #d32f2f;
+    color: white;
+    font-weight: 600;
+    border-radius: 4px;
+}
+
+.react-datepicker__day--selected:hover {
+    background-color: #b71c1c;
+}
+
+.react-datepicker__day--keyboard-selected {
+    background-color: #ffcdd2;
+    border-radius: 4px;
+}
+
+.react-datepicker__day--disabled {
+    color: #ccc;
+    cursor: not-allowed;
+}
+
+.react-datepicker__day--disabled:hover {
+    background-color: transparent;
+}
+
+.react-datepicker__day--outside-month {
+    color: #ccc;
+}
+
+.react-datepicker__navigation {
+    top: 10px;
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.react-datepicker__navigation:hover {
+    background-color: #e0e0e0;
+}
+
+.react-datepicker__navigation--previous {
+    left: 10px;
+}
+
+.react-datepicker__navigation--next {
+    right: 10px;
+}
+
+.react-datepicker__navigation-icon::before {
+    border-color: #333;
+    border-width: 2px 2px 0 0;
+    width: 8px;
+    height: 8px;
+    top: 6px;
+}
+
+/* 移动端优化 */
+@media (max-width: 600px) {
+    .react-datepicker {
+        font-size: 13px;
+        padding: 5px;
+    }
+
+    .react-datepicker__day {
+        width: 36px;
+        height: 36px;
+        line-height: 36px;
+    }
+
+    .react-datepicker__day-name {
+        width: 36px;
+        line-height: 36px;
+    }
 }
