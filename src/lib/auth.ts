@@ -69,30 +69,43 @@ export function verifyToken(token: string): User | null {
 
 /**
  * 从Request中获取当前用户信息 - 用于API routes
+ * 支持 Cookie 和 Authorization Bearer token
  */
 export function getCurrentUser(request: Request): User | null {
   try {
-    // 尝试从 Cookie header 获取 token
-    const cookieHeader = request.headers.get('cookie');
-    if (!cookieHeader) {
-      return null;
+    let token: string | null = null;
+
+    // 1. 首先尝试从 Authorization header 获取 token
+    const authHeader = request.headers.get('authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
     }
 
-    // 解析 cookies
-    const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
-      const [name, value] = cookie.trim().split('=');
-      acc[name] = value;
-      return acc;
-    }, {} as Record<string, string>);
+    // 2. 如果没有 Authorization header，尝试从 Cookie 获取
+    if (!token) {
+      const cookieHeader = request.headers.get('cookie');
+      if (cookieHeader) {
+        // 解析 cookies
+        const cookies = cookieHeader.split(';').reduce(
+          (acc, cookie) => {
+            const [name, value] = cookie.trim().split('=');
+            acc[name] = value;
+            return acc;
+          },
+          {} as Record<string, string>
+        );
 
-    const token = cookies.token;
+        token = cookies.token || null;
+      }
+    }
+
     if (!token) {
       return null;
     }
 
     return verifyToken(token);
   } catch (error) {
-    console.error('Error parsing cookie:', error);
+    console.error('Error getting current user:', error);
     return null;
   }
 }

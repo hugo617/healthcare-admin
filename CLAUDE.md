@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目概述
 
-N-Admin 是一个现代化的多租户后台管理系统，基于 Next.js 15、React 19、TypeScript 和 PostgreSQL 构建。系统具备完整的 RBAC（基于角色的访问控制）、JWT 认证以及移动端 H5 伴侣应用。
+N-Admin 是一个现代化的多租户后台管理系统，基于 Next.js 15、React 19、TypeScript 和 PostgreSQL 构建。系统具备完整的 RBAC（基于角色的访问控制）、JWT 认证以及移动端 H5 应用。
 
 **技术栈**: Next.js 15 (App Router) | React 19 | TypeScript 5 | Tailwind CSS 4 | Shadcn UI | Drizzle ORM | PostgreSQL
 
