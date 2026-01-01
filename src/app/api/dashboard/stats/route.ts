@@ -76,24 +76,34 @@ export async function GET() {
       .groupBy(systemLogs.level)
       .orderBy(desc(count()));
 
-    // 获取最近30天的用户注册数量（简化版）
+    // 获取最近30天的用户注册数量 - 优化版本
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    // 获取所有30天内的用户，然后在内存中分组
+    const usersForTrend = await db
+      .select({
+        id: users.id,
+        createdAt: users.createdAt
+      })
+      .from(users)
+      .where(gte(users.createdAt, thirtyDaysAgo))
+      .orderBy(users.createdAt);
+
+    // 按日期分组统计
+    const userCountByDate = new Map<string, number>();
+    usersForTrend.forEach((user) => {
+      const dateKey = new Date(user.createdAt).toISOString().split('T')[0];
+      userCountByDate.set(dateKey, (userCountByDate.get(dateKey) || 0) + 1);
+    });
+
+    // 生成30天数据
     const userTrend = [];
     for (let i = 29; i >= 0; i--) {
       const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-      const startOfTargetDay = new Date(
-        date.getFullYear(),
-        date.getMonth(),
-        date.getDate()
-      );
-
-      const [dayUsers] = await db
-        .select({ count: count() })
-        .from(users)
-        .where(gte(users.createdAt, startOfTargetDay));
-
+      const dateKey = date.toISOString().split('T')[0];
       userTrend.push({
-        date: date.toISOString().split('T')[0],
-        users: dayUsers.count || 0
+        date: dateKey,
+        users: userCountByDate.get(dateKey) || 0
       });
     }
 

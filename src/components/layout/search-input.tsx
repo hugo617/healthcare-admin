@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useKBar } from 'kbar';
+import { useCommandPalette } from '@/contexts/command-palette';
 import { Button } from '@/components/ui/button';
 import { SearchIcon } from 'lucide-react';
 
@@ -31,13 +31,13 @@ export default function SearchInput() {
 }
 
 function SearchInputClient() {
-  const { query } = useKBar();
+  const { toggle } = useCommandPalette();
 
   return (
     <Button
       variant='outline'
       className='bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground relative h-9 justify-start rounded-[0.5rem] text-sm font-normal shadow-none transition-colors md:w-40 md:pr-12 lg:w-64'
-      onClick={query.toggle}
+      onClick={toggle}
     >
       <SearchIcon className='mr-2 h-4 w-4 flex-shrink-0' />
       <span className='hidden lg:inline'>搜索页面、功能...</span>
