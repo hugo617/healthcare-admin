@@ -181,14 +181,14 @@ export default function HomePage() {
                   <span className="text-xs text-gray-600 text-center">在线咨询</span>
                 </Link> */}
 
-                <div onClick={() => handleFeatureClick('/service-record', '服务记录')} className="flex flex-col items-center space-y-2 p-3 rounded-xl hover:bg-gray-50 transition-colors min-w-[70px] cursor-pointer active:scale-95">
+                <Link href="/service-record" className="flex flex-col items-center space-y-2 p-3 rounded-xl hover:bg-gray-50 transition-colors min-w-[70px] cursor-pointer active:scale-95">
                   <div className="w-12 h-12 bg-teal-50 rounded-xl flex items-center justify-center">
                     <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                   </div>
                   <span className="text-xs text-gray-600 text-center">服务记录</span>
-                </div>
+                </Link>
 
                 <Link href="/service-archive" className="flex flex-col items-center space-y-2 p-3 rounded-xl hover:bg-gray-50 transition-colors min-w-[70px] cursor-pointer active:scale-95">
                   <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center">
