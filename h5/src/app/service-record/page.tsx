@@ -52,24 +52,17 @@ export default function ServiceRecordPage() {
   const [authState, setAuthState] = useState<any | null>(null);
 
   // 记录列表
-  const [records, setRecords] = useState<ServiceRecord[]>([
-    {
-      id: 1,
-      date: '2023/12/30',
-      count: 1,
-      bloodPressure: { high: 125, low: 82 },
-      discomfort: { tags: ['无'], otherText: '' },
-      duration: 45,
-      temperature: 45,
-      feedback: '身体微微发汗，感觉良好。',
-      consultant: { name: '李顾问', signature: '' },
-    },
-  ]);
+  const [records, setRecords] = useState<ServiceRecord[]>([]);
 
   // 抽屉状态
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingRecordId, setEditingRecordId] = useState<number | null>(null);
+
+  // 加载状态
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [currentArchiveId, setCurrentArchiveId] = useState<string | null>(null);
 
   // 签名模态框状态
   const [signatureModal, setSignatureModal] = useState({
@@ -95,7 +88,63 @@ export default function ServiceRecordPage() {
       return;
     }
     setAuthState(authManager.getAuthState());
+    loadServiceRecords();
   }, [router]);
+
+  // 加载服务记录
+  const loadServiceRecords = async () => {
+    try {
+      setIsLoading(true);
+
+      const token = localStorage.getItem('token');
+
+      // 1. 先获取用户的默认档案
+      const archiveResponse = await fetch('/api/service-archives?page=1&pageSize=1', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (archiveResponse.ok) {
+        const archiveData = await archiveResponse.json();
+        if (archiveData.data?.list?.length > 0) {
+          const archive = archiveData.data.list[0];
+          setCurrentArchiveId(archive.id);
+
+          // 2. 获取该档案的所有服务记录
+          const recordsResponse = await fetch(`/api/service-records/archive/${archive.id}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+
+          if (recordsResponse.ok) {
+            const recordsData = await recordsResponse.json();
+            if (recordsData.data?.records) {
+              // 转换数据格式以匹配前端接口
+              const transformedRecords: ServiceRecord[] = recordsData.data.records.map((r: any) => ({
+                id: parseInt(r.id),
+                date: r.serviceDate,
+                count: r.count,
+                bloodPressure: r.bloodPressure,
+                discomfort: r.discomfort,
+                duration: r.duration,
+                temperature: r.temperature,
+                feedback: r.feedback,
+                consultant: r.consultant,
+              }));
+              setRecords(transformedRecords);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('加载服务记录失败:', error);
+      alert('加载服务记录失败，请刷新重试');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleBack = () => {
     router.push('/');
@@ -223,52 +272,122 @@ export default function ServiceRecordPage() {
   };
 
   // 保存记录
-  const handleSave = () => {
-    const now = new Date();
-    const dateStr = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(
-      now.getDate()
-    ).padStart(2, '0')}`;
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
 
-    if (isEditing && editingRecordId !== null) {
-      // 编辑模式：更新现有记录
-      setRecords(
-        records.map((r) =>
-          r.id === editingRecordId
-            ? {
-                ...r,
-                ...formData,
-                bloodPressure: { ...formData.bloodPressure },
-                discomfort: { ...formData.discomfort },
-                consultant: { ...formData.consultant },
-              }
-            : r
-        )
-      );
-    } else {
-      // 新增模式：添加新记录
-      const newRecord: ServiceRecord = {
-        id: Date.now(),
-        date: dateStr,
-        count: getNextCount(),
-        bloodPressure: { ...formData.bloodPressure },
-        discomfort: { ...formData.discomfort },
+      const token = localStorage.getItem('token');
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(
+        now.getDate()
+      ).padStart(2, '0')}`;
+
+      const payload = {
+        archiveId: currentArchiveId,
+        serviceDate: dateStr,
+        bloodPressure: formData.bloodPressure,
+        discomfort: formData.discomfort,
         duration: formData.duration,
         temperature: formData.temperature,
         feedback: formData.feedback || '良好',
-        consultant: { ...formData.consultant },
+        consultant: formData.consultant,
       };
-      setRecords([...records, newRecord]);
-    }
 
-    setIsDrawerOpen(false);
+      let response;
+      if (isEditing && editingRecordId !== null) {
+        // 编辑模式：更新现有记录
+        response = await fetch(`/api/service-records/${editingRecordId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // 更新本地状态
+          setRecords(
+            records.map((r) =>
+              r.id === editingRecordId
+                ? {
+                    ...r,
+                    ...payload,
+                  }
+                : r
+            )
+          );
+          setIsDrawerOpen(false);
+        } else {
+          const errorData = await response.json();
+          alert(`保存失败: ${errorData.message || '未知错误'}`);
+        }
+      } else {
+        // 新增模式：创建新记录
+        response = await fetch('/api/service-records', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // 添加新记录到本地状态
+          const newRecord: ServiceRecord = {
+            id: parseInt(data.data.id),
+            date: data.data.serviceDate,
+            count: data.data.count,
+            bloodPressure: { ...formData.bloodPressure },
+            discomfort: { ...formData.discomfort },
+            duration: formData.duration,
+            temperature: formData.temperature,
+            feedback: formData.feedback || '良好',
+            consultant: { ...formData.consultant },
+          };
+          setRecords([...records, newRecord]);
+          setIsDrawerOpen(false);
+        } else {
+          const errorData = await response.json();
+          alert(`保存失败: ${errorData.message || '未知错误'}`);
+        }
+      }
+    } catch (error) {
+      console.error('保存服务记录失败:', error);
+      alert('保存失败，请重试');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // 删除记录
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (editingRecordId === null) return;
-    if (confirm('确定删除本条档案记录吗？')) {
-      setRecords(records.filter((r) => r.id !== editingRecordId));
-      setIsDrawerOpen(false);
+
+    if (!confirm('确定删除本条档案记录吗？')) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/service-records/${editingRecordId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        setRecords(records.filter((r) => r.id !== editingRecordId));
+        setIsDrawerOpen(false);
+      } else {
+        const errorData = await response.json();
+        alert(`删除失败: ${errorData.message || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('删除服务记录失败:', error);
+      alert('删除失败，请重试');
     }
   };
 
@@ -303,6 +422,17 @@ export default function ServiceRecordPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">正在加载...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">正在加载服务记录...</p>
         </div>
       </div>
     );
@@ -580,10 +710,11 @@ export default function ServiceRecordPage() {
             </button>
           )}
           <button
-            className="flex-1 py-4 rounded-xl text-base font-bold text-white bg-teal-600 hover:bg-teal-700 active:scale-95 transition-all"
+            className="flex-1 py-4 rounded-xl text-base font-bold text-white bg-teal-600 hover:bg-teal-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={handleSave}
+            disabled={isSaving}
           >
-            保存归档
+            {isSaving ? '保存中...' : '保存归档'}
           </button>
         </div>
       </div>

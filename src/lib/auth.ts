@@ -16,35 +16,65 @@ export interface Session {
 }
 
 /**
- * 服务端认证函数 - 只能在服务端组件中使用
+ * 从Request中获取token - 支持Cookie和Authorization header
  */
-export async function auth(): Promise<Session | null> {
-  const cookieStore = cookies();
-  const token = (await cookieStore).get('token');
+function getTokenFromRequest(request: Request): string | null {
+  // 1. 首先尝试从 Authorization header 获取
+  const authHeader = request.headers.get('authorization');
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.substring(7);
+  }
+
+  // 2. 从 Cookie 获取
+  const cookieHeader = request.headers.get('cookie');
+  if (cookieHeader) {
+    const cookies = cookieHeader.split(';').reduce(
+      (acc, cookie) => {
+        const [name, value] = cookie.trim().split('=');
+        acc[name] = value;
+        return acc;
+      },
+      {} as Record<string, string>
+    );
+    return cookies.token || null;
+  }
+
+  return null;
+}
+
+/**
+ * 服务端认证函数 - 只能在服务端组件中使用
+ * 优先从Cookie读取，也支持Authorization header
+ */
+export async function auth(request?: Request): Promise<Session | null> {
+  let token: string | null = null;
+
+  // 1. 如果提供了request，先尝试从request获取token
+  if (request) {
+    token = getTokenFromRequest(request);
+  }
+
+  // 2. 如果没有从request获取到，尝试从cookies获取
+  if (!token) {
+    try {
+      const cookieStore = cookies();
+      const cookie = (await cookieStore).get('token');
+      token = cookie?.value || null;
+    } catch {
+      // cookies() 可能在某些上下文中不可用
+    }
+  }
 
   if (!token) {
     return null;
   }
 
-  try {
-    const verified = verify(
-      token.value,
-      process.env.JWT_SECRET || 'secret'
-    ) as User;
-    return {
-      user: {
-        id: verified.id,
-        email: verified.email,
-        username: verified.username,
-        avatar: verified.avatar,
-        roleId: verified.roleId,
-        tenantId: BigInt(verified.tenantId || 1),
-        isSuperAdmin: verified.isSuperAdmin || false
-      }
-    };
-  } catch {
+  const user = verifyToken(token);
+  if (!user) {
     return null;
   }
+
+  return { user };
 }
 
 /**
