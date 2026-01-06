@@ -76,3 +76,18 @@ input, button, textarea {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* 滚动容器样式 */
+.scrollable-content {
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding-top: 80px;
+  padding-bottom: 100px;
+}
+
+/* 内容容器底部间距 */
+.content-container {
+  padding-bottom: 30px;
+}
