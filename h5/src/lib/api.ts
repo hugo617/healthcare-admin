@@ -39,14 +39,55 @@ apiClient.interceptors.response.use(
 );
 
 export const authAPI = {
-  login: async (email: string, password: string) => {
+  // 账号密码登录（支持用户名/手机号/邮箱）
+  login: async (account: string, password: string) => {
     try {
-      // 临时使用测试登录API
-      const response = await fetch(`/api/test/simple-login`, {
+      const response = await fetch(`/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-        credentials: 'include' // 重要：包含cookies
+        body: JSON.stringify({ account, password }),
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('登录失败');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // 发送短信验证码
+  sendSmsCode: async (phone: string) => {
+    try {
+      const response = await fetch(`/api/auth/sms/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      });
+
+      if (!response.ok) {
+        throw new Error('发送验证码失败');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // 验证码登录
+  loginWithSms: async (phone: string, code: string) => {
+    try {
+      const response = await fetch(`/api/auth/login/sms`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, code }),
+        credentials: 'include'
       });
 
       if (!response.ok) {

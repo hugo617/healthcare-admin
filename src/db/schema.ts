@@ -407,6 +407,36 @@ export const userLoginMethods = pgTable(
   })
 );
 
+// 验证码表
+export const verificationCodes = pgTable(
+  'verification_codes',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+    phone: varchar('phone', { length: 20 }).notNull(),
+    code: varchar('code', { length: 10 }).notNull(),
+    type: varchar('type', { length: 20 }).notNull(), // 'login', 'register', 'reset'
+    expiresAt: timestamp('expires_at').notNull(),
+    usedAt: timestamp('used_at'),
+    tenantId: bigint('tenant_id', { mode: 'number' })
+      .notNull()
+      .default(1)
+      .references(() => tenants.id),
+    ip: varchar('ip', { length: 50 }),
+    createdAt: timestamp('created_at').defaultNow()
+  },
+  (t) => ({
+    phoneExpiresIdx: index('idx_verification_codes_phone_expires').on(
+      t.phone,
+      t.expiresAt
+    ),
+    phoneTypeIdx: index('idx_verification_codes_phone_type').on(
+      t.phone,
+      t.type
+    ),
+    expiresAtIdx: index('idx_verification_codes_expires_at').on(t.expiresAt)
+  })
+);
+
 // 系统日志表（增强）
 export const systemLogs = pgTable(
   'system_logs',
@@ -524,7 +554,8 @@ export const tenantsRelations = relations(tenants, ({ many }) => ({
   rolePermissions: many(rolePermissions),
   organizations: many(organizations),
   dataPermissionRules: many(dataPermissionRules),
-  systemLogs: many(systemLogs)
+  systemLogs: many(systemLogs),
+  verificationCodes: many(verificationCodes)
 }));
 
 export const rolePermissionsRelations = relations(
@@ -658,6 +689,16 @@ export const systemLogsRelations = relations(systemLogs, ({ one }) => ({
   })
 }));
 
+export const verificationCodesRelations = relations(
+  verificationCodes,
+  ({ one }) => ({
+    tenant: one(tenants, {
+      fields: [verificationCodes.tenantId],
+      references: [tenants.id]
+    })
+  })
+);
+
 // 类型定义
 export type Tenant = typeof tenants.$inferSelect;
 export type NewTenant = typeof tenants.$inferInsert;
@@ -694,6 +735,9 @@ export type NewUserLoginMethod = typeof userLoginMethods.$inferInsert;
 
 export type SystemLog = typeof systemLogs.$inferSelect;
 export type NewSystemLog = typeof systemLogs.$inferInsert;
+
+export type VerificationCode = typeof verificationCodes.$inferSelect;
+export type NewVerificationCode = typeof verificationCodes.$inferInsert;
 
 // 枚举类型
 export type TenantStatus = (typeof tenantStatusEnum.enumValues)[number];

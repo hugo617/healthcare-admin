@@ -1,35 +1,62 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { authAPI } from '@/lib/api';
 import { AuthManager } from '@/lib/auth';
 
+type TabType = 'password' | 'code';
+
 export default function LoginPage() {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const router = useRouter();
   const authManager = AuthManager.getInstance();
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    if (error) setError('');
-  };
+  // UI 状态
+  const [activeTab, setActiveTab] = useState<TabType>('password');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // 密码登录表单
+  const [passwordForm, setPasswordForm] = useState({
+    account: '',
+    password: ''
+  });
+
+  // 验证码登录表单
+  const [codeForm, setCodeForm] = useState({
+    phone: '',
+    code: ''
+  });
+
+  // 其他状态
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [sendingCode, setSendingCode] = useState(false);
+  const [error, setError] = useState('');
+
+  // 从 localStorage 读取记住的账号
+  useEffect(() => {
+    const savedAccount = localStorage.getItem('remembered_account');
+    if (savedAccount) {
+      setPasswordForm(prev => ({ ...prev, account: savedAccount }));
+      setRememberMe(true);
+    }
+  }, []);
+
+  // 倒计时效果
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
+
+  // 密码登录处理
+  const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.email || !formData.password) {
-      setError('请填写邮箱和密码');
+    if (!passwordForm.account || !passwordForm.password) {
+      setError('请填写完整信息');
       return;
     }
 
@@ -37,106 +64,326 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const response = await authAPI.login(formData.email, formData.password);
+      const response = await authAPI.login(passwordForm.account, passwordForm.password);
 
-      if (response.success) {
+      if (response.code === 0) {
         const { user, token } = response.data;
         authManager.setAuthState(token, user);
 
-        // 登录成功跳转到首页
+        // 记住我
+        if (rememberMe) {
+          localStorage.setItem('remembered_account', passwordForm.account);
+        } else {
+          localStorage.removeItem('remembered_account');
+        }
+
         router.push('/');
       } else {
         setError(response.message || '登录失败');
       }
-    } catch (err) {
-      setError('登录失败，请检查网络连接或联系管理员');
-      console.error('Login error:', err);
+    } catch (err: any) {
+      setError(err?.message || '登录失败，请检查网络连接或联系管理员');
     } finally {
       setLoading(false);
     }
   };
 
+  // 验证码登录处理
+  const handleCodeLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const phoneRegex = /^1[3-9]\d{9}$/;
+    if (!phoneRegex.test(codeForm.phone)) {
+      setError('请输入正确的手机号');
+      return;
+    }
+
+    if (!codeForm.code || codeForm.code.length !== 6) {
+      setError('请输入6位验证码');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await authAPI.loginWithSms(codeForm.phone, codeForm.code);
+
+      if (response.code === 0) {
+        const { user, token } = response.data;
+        authManager.setAuthState(token, user);
+        router.push('/');
+      } else {
+        setError(response.message || '登录失败');
+      }
+    } catch (err: any) {
+      setError(err?.message || '登录失败，请检查网络连接或联系管理员');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 发送验证码
+  const handleSendCode = async () => {
+    const phoneRegex = /^1[3-9]\d{9}$/;
+    if (!phoneRegex.test(codeForm.phone)) {
+      setError('请输入正确的手机号');
+      return;
+    }
+
+    setSendingCode(true);
+    setError('');
+
+    try {
+      const response = await authAPI.sendSmsCode(codeForm.phone);
+
+      if (response.code === 0) {
+        setCountdown(60);
+      } else {
+        setError(response.message || '发送验证码失败');
+      }
+    } catch (err: any) {
+      setError(err?.message || '发送验证码失败，请稍后重试');
+    } finally {
+      setSendingCode(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">health</h1>
-          <h2 className="text-xl text-gray-600">移动端登录</h2>
-        </div>
+    <div className="min-h-screen bg-cream text-slate-700 antialiased flex items-center justify-center p-4 relative overflow-hidden">
+      {/* 背景装饰 - 柔和渐变圆形 */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-0 left-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-accent/10 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
+        <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-sage/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow-lg sm:rounded-lg sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit}>
+      {/* 登录卡片 */}
+      <div className="w-full max-w-md relative z-10">
+        {/* Logo 和标题 */}
+        <div className="text-center mb-10">
+          {/* 装饰性脉冲点 */}
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <span className="w-2 h-2 rounded-full bg-sage animate-pulse"></span>
+            <span className="w-2 h-2 rounded-full bg-lavender animate-pulse" style={{ animationDelay: '0.2s' }}></span>
+            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: '0.4s' }}></span>
+          </div>
+
+          {/* Logo */}
+          <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-accent shadow-neumorphic mb-6">
+            <div className="absolute -inset-2 bg-gradient-to-r from-primary/20 to-accent/20 rounded-2xl blur-xl"></div>
+            <svg className="w-10 h-10 text-white relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+            </svg>
+          </div>
+
+          <h1 className="font-heading text-4xl text-slate-800 mb-3">
+            欢迎<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">回来</span>
+          </h1>
+          <p className="text-slate-500 text-lg">开始您的宁静之旅</p>
+        </div>
+
+        {/* 登录卡片 - 带光晕效果 */}
+        <div className="relative">
+          <div className="absolute -inset-6 bg-gradient-to-r from-primary/10 to-accent/10 rounded-3xl blur-2xl"></div>
+          <div className="relative bg-white/90 backdrop-blur-sm rounded-3xl shadow-neumorphic p-10">
+            {/* Tab 切换 */}
+            <div className="flex p-1.5 rounded-2xl bg-neumorphic-light mb-8">
+              <button
+                onClick={() => setActiveTab('password')}
+                className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-all duration-300 ${
+                  activeTab === 'password'
+                    ? 'bg-gradient-to-r from-primary to-accent text-white shadow-neumorphic-soft'
+                    : 'text-slate-600 hover:text-primary'
+                }`}
+              >
+                密码登录
+              </button>
+              <button
+                onClick={() => setActiveTab('code')}
+                className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-all duration-300 ${
+                  activeTab === 'code'
+                    ? 'bg-gradient-to-r from-primary to-accent text-white shadow-neumorphic-soft'
+                    : 'text-slate-600 hover:text-primary'
+                }`}
+              >
+                验证码登录
+              </button>
+            </div>
+
+            {/* 错误提示 */}
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
+              <div className="mb-5 p-3 rounded-xl bg-red-50 text-red-600 text-sm">
                 {error}
               </div>
             )}
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                邮箱地址
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={formData.email}
-                onChange={handleInputChange}
-                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
-                placeholder="请输入邮箱"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                密码
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={formData.password}
-                onChange={handleInputChange}
-                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
-                placeholder="请输入密码"
-              />
-            </div>
-
-            <div>
-              <button
-                type="submit"
-                disabled={loading}
-                className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-                  loading
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-                } transition-colors duration-200`}
-              >
-                {loading ? (
-                  <div className="flex items-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    登录中...
+            {/* 密码登录表单 */}
+            {activeTab === 'password' && (
+              <form onSubmit={handlePasswordLogin}>
+                {/* 账号输入 */}
+                <div className="mb-5">
+                  <label className="block text-sm font-medium text-slate-700 mb-2.5">账号</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                      </svg>
+                    </span>
+                    <input
+                      type="text"
+                      value={passwordForm.account}
+                      onChange={(e) => {
+                        setPasswordForm(prev => ({ ...prev, account: e.target.value }));
+                        if (error) setError('');
+                      }}
+                      placeholder="请输入用户名/手机号/邮箱"
+                      className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-neumorphic-light shadow-neumorphic-inset text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all duration-300"
+                    />
                   </div>
-                ) : (
-                  '登录'
-                )}
-              </button>
-            </div>
-          </form>
+                </div>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-500">
-              © 2024 health. All rights reserved.
-            </p>
+                {/* 密码输入 */}
+                <div className="mb-5">
+                  <label className="block text-sm font-medium text-slate-700 mb-2.5">密码</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                      </svg>
+                    </span>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={passwordForm.password}
+                      onChange={(e) => {
+                        setPasswordForm(prev => ({ ...prev, password: e.target.value }));
+                        if (error) setError('');
+                      }}
+                      placeholder="请输入密码"
+                      className="w-full pl-12 pr-12 py-3.5 rounded-xl bg-neumorphic-light shadow-neumorphic-inset text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all duration-300"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    >
+                      {showPassword ? (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* 记住我 */}
+                <div className="flex items-center mb-8">
+                  <label className="flex items-center gap-2.5 cursor-pointer group">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        className="w-5 h-5 rounded border-2 border-slate-300 text-primary focus:ring-primary/30 focus:ring-offset-0 cursor-pointer peer transition-all duration-200"
+                      />
+                      <svg className="w-3 h-3 text-white absolute top-1 left-1 opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/>
+                      </svg>
+                    </div>
+                    <span className="text-sm text-slate-600 group-hover:text-slate-700 transition-colors">记住我</span>
+                  </label>
+                </div>
+
+                {/* 登录按钮 */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className={`w-full py-3.5 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-semibold shadow-neumorphic-soft hover:shadow-neumorphic-hover hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ${
+                    loading ? 'opacity-60 cursor-not-allowed' : ''
+                  }`}
+                >
+                  {loading ? '登录中...' : '登录'}
+                </button>
+              </form>
+            )}
+
+            {/* 验证码登录表单 */}
+            {activeTab === 'code' && (
+              <form onSubmit={handleCodeLogin}>
+                {/* 手机号输入 */}
+                <div className="mb-5">
+                  <label className="block text-sm font-medium text-slate-700 mb-2.5">手机号</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                      </svg>
+                    </span>
+                    <input
+                      type="tel"
+                      value={codeForm.phone}
+                      onChange={(e) => {
+                        setCodeForm(prev => ({ ...prev, phone: e.target.value }));
+                        if (error) setError('');
+                      }}
+                      placeholder="请输入手机号"
+                      className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-neumorphic-light shadow-neumorphic-inset text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all duration-300"
+                    />
+                  </div>
+                </div>
+
+                {/* 验证码输入 */}
+                <div className="mb-8">
+                  <label className="block text-sm font-medium text-slate-700 mb-2.5">验证码</label>
+                  <div className="flex gap-3">
+                    <div className="relative flex-1">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                      </span>
+                      <input
+                        type="text"
+                        value={codeForm.code}
+                        onChange={(e) => {
+                          setCodeForm(prev => ({ ...prev, code: e.target.value }));
+                          if (error) setError('');
+                        }}
+                        placeholder="请输入验证码"
+                        maxLength={6}
+                        className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-neumorphic-light shadow-neumorphic-inset text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all duration-300"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleSendCode}
+                      disabled={countdown > 0 || sendingCode}
+                      className={`px-5 py-3.5 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-medium text-sm whitespace-nowrap shadow-neumorphic-soft hover:shadow-neumorphic-hover hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ${
+                        (countdown > 0 || sendingCode) ? 'opacity-60 cursor-not-allowed scale-100' : ''
+                      }`}
+                    >
+                      {sendingCode ? '发送中...' : countdown > 0 ? `${countdown}秒后重试` : '获取验证码'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* 登录按钮 */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className={`w-full py-3.5 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-semibold shadow-neumorphic-soft hover:shadow-neumorphic-hover hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ${
+                    loading ? 'opacity-60 cursor-not-allowed' : ''
+                  }`}
+                >
+                  {loading ? '登录中...' : '登录'}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       </div>
