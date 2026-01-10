@@ -45,7 +45,6 @@ export default function UserManagementPage() {
     updateUser,
     deleteUser,
     batchOperateUsers,
-    changeUserStatus,
     resetUserPassword,
     terminateUserSessions,
     toggleUserSelection,
@@ -153,7 +152,7 @@ export default function UserManagementPage() {
    * 禁用用户
    */
   const handleDisableUser = async (user: User) => {
-    const success = await changeUserStatus(user.id, 'inactive');
+    const success = await updateUser(user.id, { status: 'inactive' });
     if (success) {
       fetchUsers(filters);
     }
