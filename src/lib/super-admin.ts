@@ -26,7 +26,7 @@ export async function preventSuperAdminDisable(
   userId: number,
   newStatus: string
 ) {
-  if (newStatus === 'disabled') {
+  if (newStatus === 'inactive' || newStatus === 'locked') {
     const user = await db
       .select()
       .from(users)

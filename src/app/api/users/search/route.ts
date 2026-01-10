@@ -1,6 +1,6 @@
 import { db } from '@/db';
 import { users, roles } from '@/db/schema';
-import { eq, and, or, like, isNull } from 'drizzle-orm';
+import { eq, and, or, like, isNull, sql } from 'drizzle-orm';
 import { getCurrentUser } from '@/lib/auth';
 import { successResponse, errorResponse } from '@/service/response';
 
@@ -28,14 +28,15 @@ export async function GET(request: Request) {
     ];
 
     // 租户隔离
-    const queryTenantId = currentUser?.isSuperAdmin && tenantId ?
-      Number(tenantId) :
-      Number(currentUser?.tenantId || 1);
+    const queryTenantId =
+      currentUser?.isSuperAdmin && tenantId
+        ? Number(tenantId)
+        : Number(currentUser?.tenantId || 1);
 
     if (!currentUser?.isSuperAdmin) {
-      conditions.push(eq(users.tenantId, BigInt(queryTenantId)));
+      conditions.push(eq(users.tenantId, queryTenantId));
     } else if (tenantId) {
-      conditions.push(eq(users.tenantId, BigInt(queryTenantId)));
+      conditions.push(eq(users.tenantId, queryTenantId));
     }
 
     // 搜索用户名、邮箱、真实姓名
@@ -45,7 +46,9 @@ export async function GET(request: Request) {
       like(users.realName, `%${query}%`)
     );
 
-    conditions.push(searchCondition);
+    if (searchCondition) {
+      conditions.push(searchCondition);
+    }
 
     const searchResults = await db
       .select({
@@ -65,22 +68,22 @@ export async function GET(request: Request) {
       .from(users)
       .leftJoin(roles, eq(users.roleId, roles.id))
       .where(and(...conditions))
-      .limit(limit)
-      .orderBy(sql`CASE
+      .limit(limit).orderBy(sql`CASE
         WHEN ${users.username} ILIKE ${`%${query}%`} THEN 1
         WHEN ${users.realName} ILIKE ${`%${query}%`} THEN 2
         WHEN ${users.email} ILIKE ${`%${query}%`} THEN 3
         ELSE 4
       END, ${users.username}`);
 
-    const formattedResults = searchResults.map(user => ({
+    const formattedResults = searchResults.map((user) => ({
       ...user,
       tenantId: Number(user.tenantId),
       displayName: user.realName || user.username,
       searchMatch: {
         username: user.username.toLowerCase().includes(query.toLowerCase()),
         email: user.email.toLowerCase().includes(query.toLowerCase()),
-        realName: user.realName?.toLowerCase().includes(query.toLowerCase()) || false
+        realName:
+          user.realName?.toLowerCase().includes(query.toLowerCase()) || false
       }
     }));
 

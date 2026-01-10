@@ -86,6 +86,7 @@ export function validateUserCreation(data: {
   phone?: string;
   realName?: string;
   roleId: number;
+  status?: string;
 }): ValidationResult {
   const errors: ValidationError[] = [];
 
@@ -93,7 +94,10 @@ export function validateUserCreation(data: {
   if (!data.username || data.username.trim().length === 0) {
     errors.push({ field: 'username', message: '用户名不能为空' });
   } else if (!validateUsername(data.username)) {
-    errors.push({ field: 'username', message: '用户名只能包含字母、数字、下划线，长度3-20' });
+    errors.push({
+      field: 'username',
+      message: '用户名只能包含字母、数字、下划线，长度3-20'
+    });
   }
 
   // 验证邮箱
@@ -133,6 +137,14 @@ export function validateUserCreation(data: {
     errors.push({ field: 'roleId', message: '请选择有效的角色' });
   }
 
+  // 验证状态（如果提供）
+  if (data.status !== undefined) {
+    const validStatuses = ['active', 'inactive', 'locked'];
+    if (!validStatuses.includes(data.status)) {
+      errors.push({ field: 'status', message: '无效的用户状态' });
+    }
+  }
+
   return {
     isValid: errors.length === 0,
     errors
@@ -157,7 +169,10 @@ export function validateUserUpdate(data: {
     if (!data.username || data.username.trim().length === 0) {
       errors.push({ field: 'username', message: '用户名不能为空' });
     } else if (!validateUsername(data.username)) {
-      errors.push({ field: 'username', message: '用户名只能包含字母、数字、下划线，长度3-20' });
+      errors.push({
+        field: 'username',
+        message: '用户名只能包含字母、数字、下划线，长度3-20'
+      });
     }
   }
 
@@ -178,7 +193,11 @@ export function validateUserUpdate(data: {
   }
 
   // 验证真实姓名（如果提供）
-  if (data.realName !== undefined && data.realName && data.realName.trim().length > 50) {
+  if (
+    data.realName !== undefined &&
+    data.realName &&
+    data.realName.trim().length > 50
+  ) {
     errors.push({ field: 'realName', message: '真实姓名长度不能超过50个字符' });
   }
 

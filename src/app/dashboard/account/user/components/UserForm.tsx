@@ -62,7 +62,7 @@ export function UserForm({ initialData, onSubmit, onCancel }: UserFormProps) {
   const handleStatusChange = (checked: boolean) => {
     setFormData({
       ...formData,
-      status: checked ? 'disabled' : 'active'
+      status: checked ? 'inactive' : 'active'
     });
   };
 
@@ -144,7 +144,7 @@ export function UserForm({ initialData, onSubmit, onCancel }: UserFormProps) {
         <div className='flex items-center space-x-2'>
           <Checkbox
             id='status'
-            checked={formData.status === 'disabled'}
+            checked={formData.status === 'inactive'}
             onCheckedChange={handleStatusChange}
             disabled={initialData?.isSuperAdmin}
           />
