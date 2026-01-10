@@ -95,7 +95,9 @@ export function useUserManagement() {
           growth: {
             thisMonth: 0,
             lastMonth: 0,
-            growthRate: 0
+            growthRate: 0,
+            today: 0,
+            week: 0
           },
           distribution: {
             active: 0,
@@ -122,7 +124,9 @@ export function useUserManagement() {
         growth: {
           thisMonth: 0,
           lastMonth: 0,
-          growthRate: 0
+          growthRate: 0,
+          today: 0,
+          week: 0
         },
         distribution: {
           active: 0,
@@ -253,7 +257,9 @@ export function useUserManagement() {
                   );
                 }).length,
                 lastMonth: 0, // TODO: 计算上月新增
-                growthRate: 0 // TODO: 计算增长率
+                growthRate: 0, // TODO: 计算增长率
+                today: 0,
+                week: 0
               },
               distribution: {
                 active: activeCount,

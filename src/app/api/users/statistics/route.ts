@@ -11,9 +11,10 @@ export async function GET(request: Request) {
     const tenantId = searchParams.get('tenantId');
 
     // 确定要查询的租户ID
-    const queryTenantId = currentUser?.isSuperAdmin && tenantId ?
-      Number(tenantId) :
-      Number(currentUser?.tenantId || 1);
+    const queryTenantId =
+      currentUser?.isSuperAdmin && tenantId
+        ? Number(tenantId)
+        : Number(currentUser?.tenantId || 1);
 
     const conditions = [eq(users.isDeleted, false)];
 
@@ -30,6 +31,20 @@ export async function GET(request: Request) {
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
+    // 新增：今日和本周时间计算
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      0,
+      0,
+      0,
+      0
+    );
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay() + 1); // 本周一
+    weekStart.setHours(0, 0, 0, 0);
+
     const [
       totalResult,
       activeResult,
@@ -38,53 +53,82 @@ export async function GET(request: Request) {
       recentLoginsResult,
       thisMonthUsersResult,
       lastMonthUsersResult,
+      todayUsersResult,
+      weekUsersResult,
       tenantInfoResult
     ] = await Promise.all([
       // 总用户数
-      db.select({ count: sql`count(*)` }).from(users).where(and(...conditions)),
+      db
+        .select({ count: sql`count(*)` })
+        .from(users)
+        .where(and(...conditions)),
 
       // 活跃用户数
-      db.select({ count: sql`count(*)` }).from(users).where(and(...conditions, eq(users.status, 'active'))),
+      db
+        .select({ count: sql`count(*)` })
+        .from(users)
+        .where(and(...conditions, eq(users.status, 'active'))),
 
       // 非活跃用户数
-      db.select({ count: sql`count(*)` }).from(users).where(and(...conditions, eq(users.status, 'inactive'))),
+      db
+        .select({ count: sql`count(*)` })
+        .from(users)
+        .where(and(...conditions, eq(users.status, 'inactive'))),
 
       // 锁定用户数
-      db.select({ count: sql`count(*)` }).from(users).where(and(...conditions, eq(users.status, 'locked'))),
+      db
+        .select({ count: sql`count(*)` })
+        .from(users)
+        .where(and(...conditions, eq(users.status, 'locked'))),
 
       // 近30天登录用户数
-      db.select({ count: sql`count(*)` }).from(users).where(
-        and(
-          ...conditions,
-          gte(users.lastLoginAt, thirtyDaysAgo)
-        )
-      ),
+      db
+        .select({ count: sql`count(*)` })
+        .from(users)
+        .where(and(...conditions, gte(users.lastLoginAt, thirtyDaysAgo))),
 
       // 本月新用户数
-      db.select({ count: sql`count(*)` }).from(users).where(
-        and(
-          ...conditions,
-          gte(users.createdAt, thisMonthStart)
-        )
-      ),
+      db
+        .select({ count: sql`count(*)` })
+        .from(users)
+        .where(and(...conditions, gte(users.createdAt, thisMonthStart))),
 
       // 上月新用户数
-      db.select({ count: sql`count(*)` }).from(users).where(
-        and(
-          ...conditions,
-          gte(users.createdAt, lastMonthStart),
-          sql`${users.createdAt} < ${lastMonthEnd}`
-        )
-      ),
+      db
+        .select({ count: sql`count(*)` })
+        .from(users)
+        .where(
+          and(
+            ...conditions,
+            gte(users.createdAt, lastMonthStart),
+            sql`${users.createdAt} < ${lastMonthEnd}`
+          )
+        ),
+
+      // 新增：今日新用户数
+      db
+        .select({ count: sql`count(*)` })
+        .from(users)
+        .where(and(...conditions, gte(users.createdAt, todayStart))),
+
+      // 新增：本周新用户数
+      db
+        .select({ count: sql`count(*)` })
+        .from(users)
+        .where(and(...conditions, gte(users.createdAt, weekStart))),
 
       // 租户信息
-      currentUser?.isSuperAdmin && tenantId ?
-        db.select({
-          id: tenants.id,
-          name: tenants.name,
-          code: tenants.code
-        }).from(tenants).where(eq(tenants.id, BigInt(queryTenantId))).limit(1) :
-        Promise.resolve([])
+      currentUser?.isSuperAdmin && tenantId
+        ? db
+            .select({
+              id: tenants.id,
+              name: tenants.name,
+              code: tenants.code
+            })
+            .from(tenants)
+            .where(eq(tenants.id, BigInt(queryTenantId)))
+            .limit(1)
+        : Promise.resolve([])
     ]);
 
     const total = Number(totalResult[0]?.count || 0);
@@ -94,14 +138,20 @@ export async function GET(request: Request) {
     const recentLogins = Number(recentLoginsResult[0]?.count || 0);
     const thisMonthUsers = Number(thisMonthUsersResult[0]?.count || 0);
     const lastMonthUsers = Number(lastMonthUsersResult[0]?.count || 0);
+    const todayUsers = Number(todayUsersResult[0]?.count || 0);
+    const weekUsers = Number(weekUsersResult[0]?.count || 0);
 
     // 计算增长率
-    const monthlyGrowthRate = lastMonthUsers > 0 ?
-      Math.round(((thisMonthUsers - lastMonthUsers) / lastMonthUsers) * 100 * 100) / 100 : 0;
+    const monthlyGrowthRate =
+      lastMonthUsers > 0
+        ? Math.round(
+            ((thisMonthUsers - lastMonthUsers) / lastMonthUsers) * 100 * 100
+          ) / 100
+        : 0;
 
     // 计算活跃率
-    const activeRate = total > 0 ?
-      Math.round((active / total) * 100 * 100) / 100 : 0;
+    const activeRate =
+      total > 0 ? Math.round((active / total) * 100 * 100) / 100 : 0;
 
     const statistics = {
       overview: {
@@ -113,12 +163,15 @@ export async function GET(request: Request) {
       },
       engagement: {
         recentLogins,
-        recentLoginRate: total > 0 ? Math.round((recentLogins / total) * 100 * 100) / 100 : 0
+        recentLoginRate:
+          total > 0 ? Math.round((recentLogins / total) * 100 * 100) / 100 : 0
       },
       growth: {
         thisMonth: thisMonthUsers,
         lastMonth: lastMonthUsers,
-        growthRate: monthlyGrowthRate
+        growthRate: monthlyGrowthRate,
+        today: todayUsers,
+        week: weekUsers
       },
       distribution: {
         active: active,

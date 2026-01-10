@@ -110,6 +110,8 @@ export interface UserStatistics {
     thisMonth: number;
     lastMonth: number;
     growthRate: number;
+    today: number;
+    week: number;
   };
   distribution: {
     active: number;
@@ -156,11 +158,26 @@ export interface UserManagementActions {
   createUser: (data: UserFormData) => Promise<boolean>;
   updateUser: (id: number, data: UserFormData) => Promise<boolean>;
   deleteUser: (id: number, reason?: string) => Promise<boolean>;
-  batchOperateUsers: (operation: string, userIds: number[], data?: any) => Promise<boolean>;
-  changeUserStatus: (id: number, status: string, reason?: string) => Promise<boolean>;
-  resetUserPassword: (id: number, newPassword: string, sendEmail?: boolean) => Promise<boolean>;
+  batchOperateUsers: (
+    operation: string,
+    userIds: number[],
+    data?: any
+  ) => Promise<boolean>;
+  changeUserStatus: (
+    id: number,
+    status: string,
+    reason?: string
+  ) => Promise<boolean>;
+  resetUserPassword: (
+    id: number,
+    newPassword: string,
+    sendEmail?: boolean
+  ) => Promise<boolean>;
   getUserSessions: (id: number) => Promise<UserSession[]>;
-  terminateUserSessions: (id: number, excludeCurrent?: boolean) => Promise<boolean>;
+  terminateUserSessions: (
+    id: number,
+    excludeCurrent?: boolean
+  ) => Promise<boolean>;
   updateFilters: (newFilters: Partial<UserFilters>) => void;
   clearFilters: () => void;
   toggleUserSelection: (userId: number) => void;

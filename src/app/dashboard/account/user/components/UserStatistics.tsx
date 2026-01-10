@@ -212,6 +212,28 @@ export function UserStatistics({
           <div className='space-y-3'>
             <div className='flex items-center justify-between'>
               <span className='text-sm text-gray-500 dark:text-gray-400'>
+                今日新增
+              </span>
+              <Badge
+                variant='secondary'
+                className='border-green-200 bg-green-50 text-green-700 hover:bg-green-50 dark:border-green-800 dark:bg-green-950/30 dark:text-green-400 dark:hover:bg-green-950/30'
+              >
+                +{growth.today.toLocaleString()}
+              </Badge>
+            </div>
+            <div className='flex items-center justify-between'>
+              <span className='text-sm text-gray-500 dark:text-gray-400'>
+                本周新增
+              </span>
+              <Badge
+                variant='secondary'
+                className='border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-400 dark:hover:bg-blue-950/30'
+              >
+                +{growth.week.toLocaleString()}
+              </Badge>
+            </div>
+            <div className='flex items-center justify-between'>
+              <span className='text-sm text-gray-500 dark:text-gray-400'>
                 本月新增
               </span>
               <Badge
