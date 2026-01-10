@@ -295,11 +295,12 @@ export function useUserManagement() {
     async (data: UserFormData): Promise<boolean> => {
       try {
         const res = await UserAPI.createUser(data);
-        if (res.success) {
+        // API 返回格式: { code: 0, data: {...} }
+        if (res.code === 0) {
           toast.success(MESSAGES.SUCCESS.CREATE);
           return true;
         } else {
-          toast.error(res.error?.message || MESSAGES.ERROR.CREATE);
+          toast.error(res.message || MESSAGES.ERROR.CREATE);
           return false;
         }
       } catch (error) {
@@ -318,11 +319,12 @@ export function useUserManagement() {
     async (id: number, data: Partial<UserFormData>): Promise<boolean> => {
       try {
         const res = await UserAPI.updateUser(id, data);
-        if (res.success) {
+        // API 返回格式: { code: 0, data: {...} }
+        if (res.code === 0) {
           toast.success(MESSAGES.SUCCESS.UPDATE);
           return true;
         } else {
-          toast.error(res.error?.message || MESSAGES.ERROR.UPDATE);
+          toast.error(res.message || MESSAGES.ERROR.UPDATE);
           return false;
         }
       } catch (error) {
@@ -341,11 +343,12 @@ export function useUserManagement() {
     async (id: number, reason?: string): Promise<boolean> => {
       try {
         const res = await UserAPI.deleteUser(id, reason);
-        if (res.success) {
+        // API 返回格式: { code: 0, data: {...} }
+        if (res.code === 0) {
           toast.success(MESSAGES.SUCCESS.DELETE);
           return true;
         } else {
-          toast.error(res.error?.message || MESSAGES.ERROR.DELETE);
+          toast.error(res.message || MESSAGES.ERROR.DELETE);
           return false;
         }
       } catch (error) {
@@ -372,7 +375,8 @@ export function useUserManagement() {
           userIds,
           data
         );
-        if (res.success) {
+        // API 返回格式: { code: 0, data: {...} }
+        if (res.code === 0) {
           const operationMessages: Record<string, string> = {
             activate: '批量激活成功',
             deactivate: '批量禁用成功',
@@ -383,7 +387,7 @@ export function useUserManagement() {
           toast.success(operationMessages[operation] || '批量操作成功');
           return true;
         } else {
-          toast.error(res.error?.message || '批量操作失败');
+          toast.error(res.message || '批量操作失败');
           return false;
         }
       } catch (error) {
@@ -402,7 +406,8 @@ export function useUserManagement() {
     async (id: number, status: string, reason?: string): Promise<boolean> => {
       try {
         const res = await UserAPI.changeUserStatus(id, status as any, reason);
-        if (res.success) {
+        // API 返回格式: { code: 0, data: {...} }
+        if (res.code === 0) {
           const statusMessages: Record<string, string> = {
             active: '用户激活成功',
             inactive: '用户禁用成功',
@@ -411,7 +416,7 @@ export function useUserManagement() {
           toast.success(statusMessages[status] || '状态修改成功');
           return true;
         } else {
-          toast.error(res.error?.message || '状态修改失败');
+          toast.error(res.message || '状态修改失败');
           return false;
         }
       } catch (error) {
@@ -434,11 +439,12 @@ export function useUserManagement() {
     ): Promise<boolean> => {
       try {
         const res = await UserAPI.resetPassword(id, newPassword, sendEmail);
-        if (res.success) {
+        // API 返回格式: { code: 0, data: {...} }
+        if (res.code === 0) {
           toast.success('密码重置成功');
           return true;
         } else {
-          toast.error(res.error?.message || '密码重置失败');
+          toast.error(res.message || '密码重置失败');
           return false;
         }
       } catch (error) {
@@ -473,11 +479,12 @@ export function useUserManagement() {
     async (id: number, excludeCurrent?: boolean): Promise<boolean> => {
       try {
         const res = await UserAPI.terminateAllUserSessions(id, excludeCurrent);
-        if (res.success) {
+        // API 返回格式: { code: 0, data: {...} }
+        if (res.code === 0) {
           toast.success('会话终止成功');
           return true;
         } else {
-          toast.error(res.error?.message || '会话终止失败');
+          toast.error(res.message || '会话终止失败');
           return false;
         }
       } catch (error) {
