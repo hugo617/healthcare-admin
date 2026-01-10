@@ -22,7 +22,8 @@ export function useUserFilters() {
     }
 
     const urlFilters: UserFilters = {
-      username: searchParams.get('username') || searchParams.get('search') || '',
+      username:
+        searchParams.get('username') || searchParams.get('search') || '',
       phone: searchParams.get('phone') || '',
       email: searchParams.get('email') || '',
       roleId: searchParams.get('roleId') || '',
@@ -116,7 +117,7 @@ export function useUserFilters() {
    * 检查是否有激活的筛选条件
    */
   const hasActiveFilters = Boolean(
-      filters.username ||
+    filters.username ||
       filters.phone ||
       filters.email ||
       filters.roleId ||
@@ -124,9 +125,20 @@ export function useUserFilters() {
       filters.dateRange
   );
 
+  /**
+   * 更新筛选条件（通用方法）
+   */
+  const updateFilters = useCallback(
+    (newFilters: Partial<UserFilters>) => {
+      searchFilters(newFilters);
+    },
+    [searchFilters]
+  );
+
   return {
     filters,
     searchFilters,
+    updateFilters,
     updatePagination,
     clearFilters,
     hasActiveFilters
