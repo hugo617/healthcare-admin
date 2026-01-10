@@ -84,7 +84,7 @@ export async function POST(request: Request) {
     const verificationCode = validCodes[0];
 
     // 查找用户
-    let userList = await db
+    const userList = await db
       .select()
       .from(users)
       .where(eq(users.phone, phone))

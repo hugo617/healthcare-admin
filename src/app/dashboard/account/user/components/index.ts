@@ -1,6 +1,11 @@
 export { UserTable } from './UserTable';
+export { UserCardGrid } from './UserCardGrid';
+export { UserCard } from './UserCard';
 export { UserFilters } from './UserFilters';
+export { FilterTags } from './FilterTags';
 export { UserDialogs } from './UserDialogs';
 export { UserPageHeader } from './UserPageHeader';
 export { UserForm } from './UserForm';
 export { UserStatistics } from './UserStatistics';
+export { ViewToggle } from './ViewToggle';
+export { FloatingBatchActions } from './FloatingBatchActions';

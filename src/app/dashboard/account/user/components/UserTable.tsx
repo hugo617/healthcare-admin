@@ -59,6 +59,10 @@ interface UserTableProps {
   onTerminateSessions?: (user: User) => void;
   /** 空状态配置 */
   emptyState?: EmptyStateProps;
+  /** 排序配置 */
+  sortConfig?: { sortBy: string; sortOrder: 'asc' | 'desc' } | null;
+  /** 排序回调 */
+  onSort?: (sortBy: string, sortOrder: 'asc' | 'desc') => void;
 }
 
 /**
@@ -79,7 +83,9 @@ export function UserTable({
   onResetPassword,
   onViewSessions,
   onTerminateSessions,
-  emptyState
+  emptyState,
+  sortConfig,
+  onSort
 }: UserTableProps) {
   // 表格列配置
   const columns = TABLE_COLUMNS.map((col) => {
@@ -121,9 +127,11 @@ export function UserTable({
               )}
             </div>
             {record.realName && (
-              <div className='text-sm text-muted-foreground'>{record.realName}</div>
+              <div className='text-muted-foreground text-sm'>
+                {record.realName}
+              </div>
             )}
-            <div className='text-xs text-muted-foreground'>
+            <div className='text-muted-foreground text-xs'>
               ID: {record.id}
               {record.tenantId && ` | 租户: ${record.tenantId}`}
             </div>
@@ -139,7 +147,9 @@ export function UserTable({
           <div className='space-y-1'>
             <div className='text-sm'>{record.email}</div>
             {record.phone && (
-              <div className='text-xs text-muted-foreground'>{record.phone}</div>
+              <div className='text-muted-foreground text-xs'>
+                {record.phone}
+              </div>
             )}
           </div>
         )
@@ -151,8 +161,8 @@ export function UserTable({
         ...col,
         render: (value: any, record: User) => {
           if (record.organizations && record.organizations.length > 0) {
-            const mainOrg = record.organizations.find(org => org.isMain);
-            const otherOrgs = record.organizations.filter(org => !org.isMain);
+            const mainOrg = record.organizations.find((org) => org.isMain);
+            const otherOrgs = record.organizations.filter((org) => !org.isMain);
 
             return (
               <div className='space-y-1'>
@@ -164,14 +174,14 @@ export function UserTable({
                   </div>
                 )}
                 {otherOrgs.length > 0 && (
-                  <div className='text-xs text-muted-foreground'>
+                  <div className='text-muted-foreground text-xs'>
                     +{otherOrgs.length} 个其他组织
                   </div>
                 )}
               </div>
             );
           }
-          return <span className='text-xs text-muted-foreground'>未分配</span>;
+          return <span className='text-muted-foreground text-xs'>未分配</span>;
         }
       };
     }
@@ -193,12 +203,14 @@ export function UserTable({
               <Badge variant='secondary' className='text-xs'>
                 {record.role.name}
               </Badge>
-              <div className='text-xs text-muted-foreground'>
+              <div className='text-muted-foreground text-xs'>
                 {record.role.code}
               </div>
             </div>
           ) : (
-            <span className='text-xs text-muted-foreground'>{MESSAGES.EMPTY.ROLE}</span>
+            <span className='text-muted-foreground text-xs'>
+              {MESSAGES.EMPTY.ROLE}
+            </span>
           );
         }
       };
@@ -224,10 +236,12 @@ export function UserTable({
               {record.lastLoginAt ? (
                 <span>{formatDateTime(record.lastLoginAt)}</span>
               ) : (
-                <span className='text-muted-foreground'>{MESSAGES.EMPTY.LAST_LOGIN}</span>
+                <span className='text-muted-foreground'>
+                  {MESSAGES.EMPTY.LAST_LOGIN}
+                </span>
               )}
             </div>
-            <div className='flex items-center gap-1 text-muted-foreground'>
+            <div className='text-muted-foreground flex items-center gap-1'>
               <span>创建于 {formatDateTime(record.createdAt)}</span>
             </div>
           </div>
@@ -335,6 +349,13 @@ export function UserTable({
       emptyText={MESSAGES.EMPTY.USERS}
       emptyState={emptyState}
       rowKey='id'
+      selectable={true}
+      selectedKeys={selectedUsers.map(String)}
+      onSelect={(key) => onSelectUser?.(Number(key))}
+      onSelectAll={onSelectAll}
+      sortableColumns={['userInfo', 'status', 'activity']}
+      sortConfig={sortConfig}
+      onSort={onSort}
     />
   );
 }

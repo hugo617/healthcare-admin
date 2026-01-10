@@ -11,12 +11,15 @@ import { Button } from '@/components/ui/button';
 // 导入重构后的组件和 hooks
 import {
   UserTable,
+  UserCardGrid,
   UserFilters,
   UserDialogs,
   UserPageHeader,
-  UserStatistics
+  UserStatistics,
+  ViewToggle,
+  FloatingBatchActions
 } from './components';
-import { useUserFilters, useUserManagement } from './hooks';
+import { useUserFilters, useUserManagement, useViewMode } from './hooks';
 import { User, UserFormData, UserDialogState } from './types';
 import { PAGE_SIZE_OPTIONS, DIALOG_TYPES } from './constants';
 
@@ -26,6 +29,7 @@ export default function UserManagementPage() {
     filters,
     searchFilters,
     updatePagination,
+    updateFilters,
     clearFilters,
     hasActiveFilters
   } = useUserFilters();
@@ -48,6 +52,13 @@ export default function UserManagementPage() {
     selectAllUsers,
     clearUserSelection
   } = useUserManagement();
+
+  // 视图模式管理
+  const {
+    viewMode,
+    setViewMode,
+    isInitialized: viewModeInitialized
+  } = useViewMode();
 
   // 对话框状态
   const [dialogState, setDialogState] = useState<UserDialogState>({
@@ -242,55 +253,123 @@ export default function UserManagementPage() {
     }
   };
 
+  /**
+   * 处理排序
+   * 字段映射: userInfo -> username, status -> status, activity -> createdAt
+   */
+  const handleSort = (sortBy: string, sortOrder: 'asc' | 'desc') => {
+    // 映射列 key 到 API 字段名
+    const fieldMap: Record<string, string> = {
+      userInfo: 'username',
+      status: 'status',
+      activity: 'createdAt'
+    };
+
+    const apiField = fieldMap[sortBy] || sortBy;
+    updateFilters({ sortBy: apiField, sortOrder });
+  };
+
   return (
     // 临时移除权限检查以测试API
-    <PageContainer scrollable={true}>
-        <div className='flex w-full flex-col space-y-4 p-4 min-h-[calc(100vh-8rem)]'>
-          {/* 页面头部 */}
-          <div className='flex-shrink-0'>
-            <UserPageHeader
-              onCreateUser={handleOpenCreateDialog}
-              selectedUsersCount={selectedUsers.length}
-              onBatchActivate={handleBatchActivate}
-              onBatchDeactivate={handleBatchDeactivate}
-              onBatchDelete={handleBatchDelete}
-              onExportUsers={handleExportUsers}
-              onImportUsers={handleImportUsers}
-              onRefresh={handleRefresh}
-              totalUsers={statistics?.overview?.total}
-              activeUsers={statistics?.overview?.active}
-              loading={loading}
-            />
+    <PageContainer scrollable={true} bentoMode={true}>
+      <div className='flex min-h-[calc(100vh-8rem)] w-full flex-col space-y-4 p-4'>
+        {/* 页面头部 */}
+        <div className='flex-shrink-0'>
+          <UserPageHeader
+            onCreateUser={handleOpenCreateDialog}
+            onExportUsers={handleExportUsers}
+            onImportUsers={handleImportUsers}
+            onRefresh={handleRefresh}
+            totalUsers={statistics?.overview?.total}
+            activeUsers={statistics?.overview?.active}
+            loading={loading}
+          />
+        </div>
+
+        {/* 用户统计信息 */}
+        <div className='flex-shrink-0'>
+          <UserStatistics statistics={statistics} loading={loading} />
+        </div>
+
+        {/* 搜索和筛选 */}
+        <div className='flex-shrink-0'>
+          <UserFilters
+            filters={filters}
+            roles={roles}
+            tenants={[]} // TODO: 从hook获取租户数据
+            organizations={[]} // TODO: 从hook获取组织数据
+            onSearch={searchFilters}
+            onReset={clearFilters}
+            loading={loading}
+          />
+        </div>
+
+        {/* 数据表格和分页 */}
+        <div className='flex min-h-0 flex-1 flex-col'>
+          {/* 视图切换 */}
+          <div className='mb-4 flex-shrink-0'>
+            <ViewToggle viewMode={viewMode} onViewChange={setViewMode} />
           </div>
 
-          {/* 用户统计信息 */}
-          <div className='flex-shrink-0'>
-            <UserStatistics statistics={statistics} loading={loading} />
-          </div>
-
-          {/* 搜索和筛选 */}
-          <div className='flex-shrink-0'>
-            <UserFilters
-              filters={filters}
-              roles={roles}
-              tenants={[]} // TODO: 从hook获取租户数据
-              organizations={[]} // TODO: 从hook获取组织数据
-              onSearch={searchFilters}
-              onReset={clearFilters}
-              loading={loading}
-            />
-          </div>
-
-          {/* 数据表格和分页 */}
-          <div className='flex flex-1 flex-col min-h-0'>
-            <div className='flex-1 min-h-[400px] border rounded-md overflow-hidden bg-background'>
-              <UserTable
+          {/* 数据展示 */}
+          <div className='min-h-[400px] flex-1'>
+            {viewMode === 'table' ? (
+              <div className='bg-background overflow-hidden rounded-md border'>
+                <UserTable
+                  users={users}
+                  loading={loading}
+                  pagination={pagination}
+                  selectedUsers={selectedUsers}
+                  onSelectUser={toggleUserSelection}
+                  onSelectAll={selectAllUsers}
+                  onEdit={handleOpenEditDialog}
+                  onDelete={handleDeleteUser}
+                  onEnable={handleEnableUser}
+                  onDisable={handleDisableUser}
+                  onResetPassword={handleResetPassword}
+                  onTerminateSessions={handleTerminateSessions}
+                  sortConfig={
+                    filters.sortBy
+                      ? {
+                          sortBy:
+                            {
+                              username: 'userInfo',
+                              status: 'status',
+                              createdAt: 'activity',
+                              lastLoginAt: 'activity'
+                            }[filters.sortBy] || filters.sortBy,
+                          sortOrder: filters.sortOrder || 'desc'
+                        }
+                      : null
+                  }
+                  onSort={handleSort}
+                  emptyState={{
+                    icon: <Users className='text-muted-foreground h-8 w-8' />,
+                    title: hasActiveFilters ? '未找到匹配的用户' : '还没有用户',
+                    description: hasActiveFilters
+                      ? '请尝试调整筛选条件以查看更多结果'
+                      : '开始添加用户来管理您的系统',
+                    action: !hasActiveFilters ? (
+                      <PermissionGuard permissions={PERMISSIONS.USER.CREATE}>
+                        <Button
+                          onClick={handleOpenCreateDialog}
+                          size='sm'
+                          className='mt-2'
+                        >
+                          <Plus className='mr-2 h-4 w-4' />
+                          添加用户
+                        </Button>
+                      </PermissionGuard>
+                    ) : undefined
+                  }}
+                />
+              </div>
+            ) : (
+              <UserCardGrid
                 users={users}
                 loading={loading}
-                pagination={pagination}
                 selectedUsers={selectedUsers}
                 onSelectUser={toggleUserSelection}
-                onSelectAll={selectAllUsers}
                 onEdit={handleOpenEditDialog}
                 onDelete={handleDeleteUser}
                 onEnable={handleEnableUser}
@@ -317,30 +396,39 @@ export default function UserManagementPage() {
                   ) : undefined
                 }}
               />
-            </div>
-
-            {/* 分页控件 */}
-            <div className='flex-shrink-0 pt-4 bg-background'>
-              <Pagination
-                pagination={pagination}
-                onPageChange={(page) => updatePagination({ page })}
-                onPageSizeChange={(limit) =>
-                  updatePagination({ limit, page: 1 })
-                }
-                pageSizeOptions={PAGE_SIZE_OPTIONS}
-              />
-            </div>
+            )}
           </div>
 
-          {/* 用户对话框 */}
-          <UserDialogs
-            dialogState={dialogState}
-            onClose={handleCloseDialog}
-            onCreateUser={handleCreateUser}
-            onUpdateUser={handleUpdateUser}
-          />
+          {/* 分页控件 */}
+          <div className='bg-background flex-shrink-0 pt-4'>
+            <Pagination
+              pagination={pagination}
+              onPageChange={(page) => updatePagination({ page })}
+              onPageSizeChange={(limit) => updatePagination({ limit, page: 1 })}
+              pageSizeOptions={PAGE_SIZE_OPTIONS}
+            />
+          </div>
         </div>
-      </PageContainer>
+
+        {/* 用户对话框 */}
+        <UserDialogs
+          dialogState={dialogState}
+          onClose={handleCloseDialog}
+          onCreateUser={handleCreateUser}
+          onUpdateUser={handleUpdateUser}
+        />
+
+        {/* 浮动批量操作栏 */}
+        <FloatingBatchActions
+          selectedCount={selectedUsers.length}
+          onBatchActivate={handleBatchActivate}
+          onBatchDeactivate={handleBatchDeactivate}
+          onBatchDelete={handleBatchDelete}
+          onClearSelection={clearUserSelection}
+          visible={selectedUsers.length > 0}
+        />
+      </div>
+    </PageContainer>
     // </PermissionGuard>
   );
 }

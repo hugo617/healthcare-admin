@@ -23,9 +23,16 @@ import {
 } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { AdvancedFilterContainer } from '@/components/shared/advanced-filter-container';
+import { FilterTags } from './FilterTags';
 
-import { UserFilters as UserFiltersType, Role, Tenant, Organization } from '../types';
+import {
+  UserFilters as UserFiltersType,
+  Role,
+  Tenant,
+  Organization
+} from '../types';
 import { STATUS_OPTIONS } from '../constants';
+import { ViewMode } from '../hooks/useViewMode';
 
 interface UserFiltersProps {
   /** 筛选条件值 */
@@ -42,6 +49,10 @@ interface UserFiltersProps {
   onReset: () => void;
   /** 加载状态 */
   loading?: boolean;
+  /** 视图模式 */
+  viewMode?: ViewMode;
+  /** 视图模式变更回调 */
+  onViewModeChange?: (mode: ViewMode) => void;
 }
 
 /**
@@ -55,7 +66,9 @@ export function UserFilters({
   organizations = [],
   onSearch,
   onReset,
-  loading = false
+  loading = false,
+  viewMode,
+  onViewModeChange
 }: UserFiltersProps) {
   // 本地表单状态
   const [formData, setFormData] = useState<UserFiltersType>({
@@ -143,6 +156,38 @@ export function UserFilters({
   };
 
   /**
+   * 移除单个筛选条件
+   */
+  const handleRemoveFilter = (filterKey: keyof UserFiltersType) => {
+    let resetValue: any;
+
+    // 根据筛选字段类型确定重置值
+    switch (filterKey) {
+      case 'roleId':
+      case 'tenantId':
+      case 'organizationId':
+      case 'dateRange':
+        resetValue = undefined;
+        break;
+      case 'status':
+        resetValue = 'all';
+        break;
+      default:
+        resetValue = '';
+    }
+
+    // 更新表单数据
+    updateFormField(filterKey, resetValue);
+
+    // 触发搜索以刷新结果
+    onSearch({
+      ...formData,
+      [filterKey]: resetValue,
+      page: 1
+    });
+  };
+
+  /**
    * 回车键查询
    */
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -156,7 +201,7 @@ export function UserFilters({
    * 检查是否有激活的筛选条件
    */
   const hasActiveFilters = Boolean(
-      formData.search ||
+    formData.search ||
       formData.username ||
       formData.realName ||
       formData.phone ||
@@ -166,86 +211,87 @@ export function UserFilters({
       formData.organizationId ||
       (formData.status && formData.status !== 'all') ||
       formData.dateRange ||
-      (formData.sortBy !== 'createdAt') ||
-      (formData.sortOrder !== 'desc')
+      formData.sortBy !== 'createdAt' ||
+      formData.sortOrder !== 'desc'
   );
 
   /**
    * 渲染快速搜索栏
    */
   const renderQuickSearch = () => (
-    <div className='flex items-center gap-3'>
-      {/* 全局搜索 */}
-      <div className='relative max-w-sm flex-1'>
-        <Search className='text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2' />
-        <Input
-          placeholder='搜索用户名、姓名或邮箱...'
-          value={formData.search || ''}
-          onChange={(e) => updateFormField('search', e.target.value)}
-          onKeyDown={handleKeyPress}
-          className='pl-10'
-        />
-      </div>
+    <div className='space-y-3'>
+      {/* 第一行: 全局搜索、排序、查询、高级筛选按钮 */}
+      <div className='flex items-center gap-3'>
+        {/* 全局搜索 */}
+        <div className='relative max-w-sm flex-1'>
+          <Search className='text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2' />
+          <Input
+            placeholder='搜索用户名、姓名或邮箱...'
+            value={formData.search || ''}
+            onChange={(e) => updateFormField('search', e.target.value)}
+            onKeyDown={handleKeyPress}
+            className='pl-10'
+          />
+        </div>
 
-      {/* 排序选项 */}
-      <div className='flex items-center gap-2'>
-        <span className='text-sm text-muted-foreground'>排序:</span>
-        <Select
-          value={`${formData.sortBy}_${formData.sortOrder}`}
-          onValueChange={(value) => {
-            const [sortBy, sortOrder] = value.split('_');
-            updateFormField('sortBy', sortBy);
-            updateFormField('sortOrder', sortOrder);
-          }}
-        >
-          <SelectTrigger className='w-32'>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value='createdAt_desc'>创建时间 ↓</SelectItem>
-            <SelectItem value='createdAt_asc'>创建时间 ↑</SelectItem>
-            <SelectItem value='username_desc'>用户名 ↓</SelectItem>
-            <SelectItem value='username_asc'>用户名 ↑</SelectItem>
-            <SelectItem value='lastLoginAt_desc'>最近登录 ↓</SelectItem>
-            <SelectItem value='lastLoginAt_asc'>最近登录 ↑</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+        {/* 排序选项 */}
+        <div className='flex items-center gap-2'>
+          <span className='text-muted-foreground text-sm'>排序:</span>
+          <Select
+            value={`${formData.sortBy}_${formData.sortOrder}`}
+            onValueChange={(value) => {
+              const [sortBy, sortOrder] = value.split('_');
+              updateFormField('sortBy', sortBy);
+              updateFormField('sortOrder', sortOrder);
+            }}
+          >
+            <SelectTrigger className='w-32'>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='createdAt_desc'>创建时间 ↓</SelectItem>
+              <SelectItem value='createdAt_asc'>创建时间 ↑</SelectItem>
+              <SelectItem value='username_desc'>用户名 ↓</SelectItem>
+              <SelectItem value='username_asc'>用户名 ↑</SelectItem>
+              <SelectItem value='lastLoginAt_desc'>最近登录 ↓</SelectItem>
+              <SelectItem value='lastLoginAt_asc'>最近登录 ↑</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-      {/* 查询按钮 */}
-      <Button
-        onClick={handleSearch}
-        disabled={loading}
-        className='shrink-0 cursor-pointer'
-      >
-        <Search className='mr-2 h-4 w-4' />
-        查询
-      </Button>
-
-      {/* 高级筛选按钮 */}
-      <Button
-        variant='outline'
-        onClick={() => setIsAdvancedFilterOpen(true)}
-        className='shrink-0 cursor-pointer'
-      >
-        <Filter className='mr-2 h-4 w-4' />
-        高级筛选
-        {hasActiveFilters && (
-          <span className='bg-primary ml-2 h-2 w-2 rounded-full' />
-        )}
-      </Button>
-
-      {/* 重置按钮 */}
-      {hasActiveFilters && (
+        {/* 查询按钮 */}
         <Button
-          variant='ghost'
-          onClick={handleReset}
-          className='text-muted-foreground hover:text-foreground shrink-0 cursor-pointer'
+          onClick={handleSearch}
+          disabled={loading}
+          className='shrink-0 cursor-pointer'
         >
-          <RotateCcw className='mr-1 h-4 w-4' />
-          重置
+          <Search className='mr-2 h-4 w-4' />
+          查询
         </Button>
-      )}
+
+        {/* 高级筛选按钮 */}
+        <Button
+          variant='outline'
+          onClick={() => setIsAdvancedFilterOpen(true)}
+          className='shrink-0 cursor-pointer'
+        >
+          <Filter className='mr-2 h-4 w-4' />
+          高级筛选
+          {hasActiveFilters && (
+            <span className='bg-primary ml-2 h-2 w-2 rounded-full' />
+          )}
+        </Button>
+      </div>
+
+      {/* 第二行: 筛选标签（显示高级筛选条件） */}
+      <FilterTags
+        filters={formData}
+        roles={roles}
+        tenants={tenants}
+        organizations={organizations}
+        onRemove={handleRemoveFilter}
+        onClearAll={handleReset}
+      />
     </div>
   );
 
@@ -301,7 +347,10 @@ export function UserFilters({
           <Select
             value={formData.roleId ? String(formData.roleId) : 'all'}
             onValueChange={(value) =>
-              updateFormField('roleId', value === 'all' ? undefined : Number(value))
+              updateFormField(
+                'roleId',
+                value === 'all' ? undefined : Number(value)
+              )
             }
           >
             <SelectTrigger className='w-full'>
@@ -346,7 +395,10 @@ export function UserFilters({
               <Select
                 value={formData.tenantId ? String(formData.tenantId) : 'all'}
                 onValueChange={(value) =>
-                  updateFormField('tenantId', value === 'all' ? undefined : Number(value))
+                  updateFormField(
+                    'tenantId',
+                    value === 'all' ? undefined : Number(value)
+                  )
                 }
               >
                 <SelectTrigger className='w-full'>
@@ -367,9 +419,16 @@ export function UserFilters({
             <div className='space-y-2'>
               <Label>组织</Label>
               <Select
-                value={formData.organizationId ? String(formData.organizationId) : 'all'}
+                value={
+                  formData.organizationId
+                    ? String(formData.organizationId)
+                    : 'all'
+                }
                 onValueChange={(value) =>
-                  updateFormField('organizationId', value === 'all' ? undefined : Number(value))
+                  updateFormField(
+                    'organizationId',
+                    value === 'all' ? undefined : Number(value)
+                  )
                 }
               >
                 <SelectTrigger className='w-full'>

@@ -10,6 +10,7 @@ import {
   TableRow
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 interface TableSkeletonProps {
   columnCount?: number;
@@ -30,7 +31,7 @@ export function TableSkeleton({
             <TableRow className='bg-muted/50'>
               {Array.from({ length: columnCount }).map((_, index) => (
                 <TableHead key={index}>
-                  <Skeleton className='h-4 w-20' />
+                  <Skeleton className='skeleton-shimmer h-4 w-20' />
                 </TableHead>
               ))}
             </TableRow>
@@ -41,7 +42,12 @@ export function TableSkeleton({
             <TableRow key={rowIndex}>
               {Array.from({ length: columnCount }).map((_, colIndex) => (
                 <TableCell key={colIndex}>
-                  <Skeleton className='h-4 w-full' />
+                  <Skeleton
+                    className='skeleton-shimmer h-4 w-full'
+                    style={{
+                      animationDelay: `${rowIndex * 0.1}s`
+                    }}
+                  />
                 </TableCell>
               ))}
             </TableRow>

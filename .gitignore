@@ -82,6 +82,10 @@ REGRESSION_TEST*.md
 manual-test.md
 test-*.sh
 *.test.sh
+check_*.js
+check_*.ts
+cleanup_*.js
+test-*.html
 
 /h5/node_modules
 h5/.next/
