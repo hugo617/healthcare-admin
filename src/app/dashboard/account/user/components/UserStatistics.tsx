@@ -152,7 +152,7 @@ export function UserStatistics({
         </div>
 
         {/* 用户活跃度 */}
-        <div className='bento-card bento-card-hover col-span-1 md:col-span-2'>
+        <div className='bento-card bento-card-hover col-span-1'>
           <div className='mb-4 flex items-center gap-3'>
             <div className='rounded-xl bg-purple-50 p-2.5 dark:bg-purple-950/30'>
               <Activity className='h-5 w-5 text-purple-600 dark:text-purple-400' />
@@ -200,7 +200,7 @@ export function UserStatistics({
         </div>
 
         {/* 用户增长趋势 */}
-        <div className='bento-card bento-card-hover col-span-1 md:col-span-1'>
+        <div className='bento-card bento-card-hover col-span-1 md:col-span-2'>
           <div className='mb-4 flex items-center gap-3'>
             <div className='rounded-xl bg-cyan-50 p-2.5 dark:bg-cyan-950/30'>
               <TrendingUp className='h-5 w-5 text-cyan-600 dark:text-cyan-400' />
@@ -209,7 +209,7 @@ export function UserStatistics({
               增长趋势
             </span>
           </div>
-          <div className='space-y-3'>
+          <div className='grid grid-cols-2 gap-x-4 gap-y-3'>
             <div className='flex items-center justify-between'>
               <span className='text-sm text-gray-500 dark:text-gray-400'>
                 今日新增
