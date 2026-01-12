@@ -13,6 +13,19 @@ import { formatDateTime } from '@/components/table/utils';
 import { TABLE_COLUMNS, MESSAGES } from '../constants';
 import type { Role, PaginationInfo } from '../types';
 
+/** 状态对应的样式配置 */
+const STATUS_STYLES: Record<
+  string,
+  {
+    label: string;
+    variant: 'default' | 'secondary' | 'destructive' | 'outline';
+  }
+> = {
+  active: { label: '激活', variant: 'default' },
+  inactive: { label: '停用', variant: 'secondary' },
+  deleted: { label: '已删除', variant: 'destructive' }
+};
+
 interface RoleTableProps {
   data: Role[];
   loading: boolean;
@@ -58,6 +71,16 @@ export function RoleTable({
           ) : (
             <span>{value}</span>
           );
+        }
+      };
+    }
+
+    if (col.key === 'status') {
+      return {
+        ...col,
+        render: (value: string) => {
+          const config = STATUS_STYLES[value || 'active'];
+          return <Badge variant={config.variant}>{config.label}</Badge>;
         }
       };
     }

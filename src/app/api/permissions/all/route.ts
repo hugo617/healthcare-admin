@@ -10,6 +10,7 @@ export async function GET() {
         id: permissions.id,
         name: permissions.name,
         code: permissions.code,
+        type: permissions.type,
         description: permissions.description,
         parentId: permissions.parentId,
         sortOrder: permissions.sortOrder

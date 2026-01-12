@@ -53,12 +53,13 @@ export const FILTER_FIELDS: FilterField[] = [
 ];
 
 /**
- * 角色状态选项
+ * 角色状态选项（对应数据库 role_status 枚举）
  */
 export const ROLE_STATUS_OPTIONS = [
   { label: '全部角色', value: 'all' },
-  { label: '普通角色', value: 'normal' },
-  { label: '超级管理员', value: 'super' }
+  { label: '激活', value: 'active' },
+  { label: '停用', value: 'inactive' },
+  { label: '已删除', value: 'deleted' }
 ] as const;
 
 /**
@@ -79,6 +80,11 @@ export const TABLE_COLUMNS = [
     key: 'description',
     title: '描述',
     className: 'text-muted-foreground'
+  },
+  {
+    key: 'status',
+    title: '状态',
+    className: 'w-[90px]'
   },
   {
     key: 'userCount',

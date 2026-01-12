@@ -9,6 +9,7 @@
     "lint": "next lint",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "init:admin": "tsx scripts/init-admin.ts",
+    "init:templates": "tsx scripts/init-permission-templates.ts",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
@@ -21,7 +22,14 @@
     "release:pre": "standard-version --prerelease",
     "release:first": "standard-version --first-release",
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
-    "postrelease": "git push --follow-tags origin main && echo '🎉 Release complete!'"
+    "postrelease": "git push --follow-tags origin main && echo '🎉 Release complete!'",
+    "test:data:generate": "tsx docs/测试内容/scripts/run-all-scenarios.ts",
+    "test:data:cleanup": "tsx docs/测试内容/scripts/global-cleanup.ts",
+    "test:data:scenario1": "tsx docs/测试内容/scripts/scenarios/scenario1-healthcare/index.ts",
+    "test:data:scenario2": "tsx docs/测试内容/scripts/scenarios/scenario2-property/index.ts",
+    "test:data:scenario3": "tsx docs/测试内容/scripts/scenarios/scenario3-education/index.ts",
+    "test:data:scenario4": "tsx docs/测试内容/scripts/scenarios/scenario4-restaurant/index.ts",
+    "test:data:scenario5": "tsx docs/测试内容/scripts/scenarios/scenario5-collaboration/index.ts"
   },
   "author": "Guizimo",
   "license": "MIT",

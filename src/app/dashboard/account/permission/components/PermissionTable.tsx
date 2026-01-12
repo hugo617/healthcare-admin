@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit } from 'lucide-react';
+import { Edit, Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/table/data-table';
 import {
@@ -8,8 +8,13 @@ import {
   type DeleteAction
 } from '@/components/table/action-dropdown';
 import { formatDateTime } from '@/components/table/utils';
-import { Permission, PaginationInfo } from '../types';
-import { TABLE_COLUMNS, MESSAGES } from '../constants';
+import { Permission, PaginationInfo, PermissionType } from '../types';
+import {
+  TABLE_COLUMNS,
+  MESSAGES,
+  PERMISSION_TYPE_CONFIG,
+  HTTP_METHOD_CONFIG
+} from '../constants';
 
 interface EmptyStateProps {
   icon?: React.ReactNode;
@@ -29,6 +34,8 @@ interface PermissionTableProps {
   onEdit: (permission: Permission) => void;
   /** 删除权限回调 */
   onDelete: (permission: Permission) => void;
+  /** 查看使用情况回调 */
+  onViewUsage?: (permission: Permission) => void;
   /** 空状态配置 */
   emptyState?: EmptyStateProps;
 }
@@ -43,6 +50,7 @@ export function PermissionTable({
   pagination,
   onEdit,
   onDelete,
+  onViewUsage,
   emptyState
 }: PermissionTableProps) {
   // 表格列配置
@@ -57,14 +65,106 @@ export function PermissionTable({
       };
     }
 
+    if (col.key === 'type') {
+      return {
+        ...col,
+        render: (value: PermissionType) => {
+          const config = PERMISSION_TYPE_CONFIG[value];
+          if (!config) return value;
+          return (
+            <Badge
+              variant='outline'
+              className={`gap-1.5 text-xs ${config.color}`}
+            >
+              <config.icon className='h-3 w-3' />
+              {config.label}
+            </Badge>
+          );
+        }
+      };
+    }
+
     if (col.key === 'code') {
       return {
         ...col,
-        render: (value: string) => (
-          <Badge variant='outline' className='font-mono text-xs'>
-            {value}
-          </Badge>
-        )
+        render: (value: string, record: Permission) => {
+          const method = record.method;
+          const methodConfig = method
+            ? HTTP_METHOD_CONFIG[method as keyof typeof HTTP_METHOD_CONFIG]
+            : null;
+          return (
+            <div className='flex items-center gap-2'>
+              {methodConfig && (
+                <Badge className={`text-xs ${methodConfig.color}`}>
+                  {methodConfig.label}
+                </Badge>
+              )}
+              <span className='font-mono text-sm'>{value}</span>
+            </div>
+          );
+        }
+      };
+    }
+
+    if (col.key === 'roleUsage') {
+      return {
+        ...col,
+        render: (value: number, record: Permission) => {
+          const count = record.roleUsageCount || 0;
+          if (count === 0)
+            return <span className='text-muted-foreground text-sm'>-</span>;
+          return (
+            <Badge variant='secondary' className='text-xs'>
+              {count} 个角色
+            </Badge>
+          );
+        }
+      };
+    }
+
+    if (col.key === 'frontPath') {
+      return {
+        ...col,
+        render: (value: string | undefined) => {
+          if (!value)
+            return <span className='text-muted-foreground text-sm'>-</span>;
+          return <span className='font-mono text-xs'>{value}</span>;
+        }
+      };
+    }
+
+    if (col.key === 'apiPath') {
+      return {
+        ...col,
+        render: (value: string | undefined, record: Permission) => {
+          if (!value)
+            return <span className='text-muted-foreground text-sm'>-</span>;
+          return (
+            <div className='flex items-center gap-1.5'>
+              {record.method && (
+                <span className='text-muted-foreground font-mono text-xs'>
+                  [{record.method}]
+                </span>
+              )}
+              <span className='font-mono text-xs'>{value}</span>
+            </div>
+          );
+        }
+      };
+    }
+
+    if (col.key === 'isSystem') {
+      return {
+        ...col,
+        render: (value: boolean) => {
+          return value ? (
+            <Badge variant='default' className='text-xs'>
+              系统权限
+            </Badge>
+          ) : (
+            <span className='text-muted-foreground text-sm'>-</span>
+          );
+        }
       };
     }
 
@@ -81,19 +181,36 @@ export function PermissionTable({
       return {
         ...col,
         render: (value: any, record: Permission) => {
-          const actions: ActionItem[] = [
-            {
-              key: 'edit',
-              label: '编辑',
-              icon: <Edit className='mr-2 h-4 w-4' />,
-              onClick: () => onEdit(record)
-            }
-          ];
+          const actions: ActionItem[] = [];
+
+          // 查看使用情况
+          if (onViewUsage) {
+            actions.push({
+              key: 'usage',
+              label: '使用情况',
+              icon: <Eye className='mr-2 h-4 w-4' />,
+              onClick: () => onViewUsage(record)
+            });
+          }
+
+          // 编辑
+          actions.push({
+            key: 'edit',
+            label: '编辑',
+            icon: <Edit className='mr-2 h-4 w-4' />,
+            onClick: () => onEdit(record)
+          });
 
           const deleteAction: DeleteAction = {
             description: MESSAGES.CONFIRM.DELETE(record.name),
-            onConfirm: () => onDelete(record)
+            onConfirm: () => onDelete(record),
+            disabled: record.isSystem
           };
+
+          if (record.isSystem) {
+            deleteAction.disabledReason =
+              MESSAGES.SYSTEM_PERMISSION.DELETE_DENIED;
+          }
 
           return (
             <ActionDropdown actions={actions} deleteAction={deleteAction} />

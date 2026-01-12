@@ -30,7 +30,7 @@ export function PermissionDialogs({
   onClose,
   onSubmit
 }: PermissionDialogsProps) {
-  const { type, permission, open } = dialogState;
+  const { type, permission, open, parentPermission } = dialogState;
 
   const handleSubmit = async (data: PermissionFormData) => {
     await onSubmit(data);
@@ -60,6 +60,7 @@ export function PermissionDialogs({
         <div className='px-6 py-4'>
           <PermissionForm
             initialData={permission || undefined}
+            parentPermissionId={parentPermission?.id}
             onSubmit={handleSubmit}
             onCancel={onClose}
           />

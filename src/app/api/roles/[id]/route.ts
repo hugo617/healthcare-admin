@@ -99,7 +99,16 @@ export async function DELETE(
     }
 
     await preventSuperRoleModification(id);
-    await db.delete(roles).where(eq(roles.id, id));
+
+    // 软删除：更新 isDeleted、deletedAt 和 status 字段
+    await db
+      .update(roles)
+      .set({
+        isDeleted: true,
+        deletedAt: new Date(),
+        status: 'deleted'
+      })
+      .where(eq(roles.id, id));
 
     // 记录删除日志
     await logger.warn('删除角色', '角色删除成功', {

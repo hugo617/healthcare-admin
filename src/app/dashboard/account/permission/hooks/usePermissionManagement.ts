@@ -8,7 +8,8 @@ import {
   PermissionFilters,
   PermissionFormData,
   PaginationInfo,
-  PermissionDialogState
+  PermissionDialogState,
+  PermissionTreeNode
 } from '../types';
 import { DEFAULT_PAGINATION, MESSAGES } from '../constants';
 
@@ -20,7 +21,8 @@ export function usePermissionManagement() {
   const [dialogState, setDialogState] = useState<PermissionDialogState>({
     type: null,
     permission: null,
-    open: false
+    open: false,
+    parentPermission: null
   });
 
   // 获取权限列表
@@ -140,16 +142,31 @@ export function usePermissionManagement() {
     setDialogState({
       type: 'create',
       permission: null,
-      open: true
+      open: true,
+      parentPermission: null
     });
   }, []);
+
+  // 打开创建子权限对话框
+  const openCreateChildDialog = useCallback(
+    (parentPermission: Permission | PermissionTreeNode) => {
+      setDialogState({
+        type: 'create',
+        permission: null,
+        open: true,
+        parentPermission
+      });
+    },
+    []
+  );
 
   // 打开编辑对话框
   const openEditDialog = useCallback((permission: Permission) => {
     setDialogState({
       type: 'edit',
       permission,
-      open: true
+      open: true,
+      parentPermission: null
     });
   }, []);
 
@@ -158,7 +175,8 @@ export function usePermissionManagement() {
     setDialogState({
       type: null,
       permission: null,
-      open: false
+      open: false,
+      parentPermission: null
     });
   }, []);
 
@@ -175,6 +193,7 @@ export function usePermissionManagement() {
     updatePermission,
     deletePermission,
     openCreateDialog,
+    openCreateChildDialog,
     openEditDialog,
     closeDialog
   };

@@ -527,6 +527,7 @@ export const rolesRelations = relations(roles, ({ many, one }) => ({
 
 export const permissionsRelations = relations(permissions, ({ many, one }) => ({
   rolePermissions: many(rolePermissions),
+  templatePermissions: many(templatePermissions),
   parent: one(permissions, {
     fields: [permissions.parentId],
     references: [permissions.id],
@@ -555,7 +556,9 @@ export const tenantsRelations = relations(tenants, ({ many }) => ({
   organizations: many(organizations),
   dataPermissionRules: many(dataPermissionRules),
   systemLogs: many(systemLogs),
-  verificationCodes: many(verificationCodes)
+  verificationCodes: many(verificationCodes),
+  permissionTemplates: many(permissionTemplates),
+  templatePermissions: many(templatePermissions)
 }));
 
 export const rolePermissionsRelations = relations(
@@ -912,3 +915,104 @@ export const serviceRecordsRelations = relations(serviceRecords, ({ one }) => ({
 // 服务记录类型
 export type ServiceRecord = typeof serviceRecords.$inferSelect;
 export type NewServiceRecord = typeof serviceRecords.$inferInsert;
+
+// 权限模板表
+export const permissionTemplates = pgTable(
+  'permission_templates',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+    name: varchar('name', { length: 100 }).notNull(),
+    description: varchar('description', { length: 255 }),
+    tenantId: bigint('tenant_id', { mode: 'number' }).notNull().default(1),
+    isSystem: boolean('is_system').default(false),
+    isDeleted: boolean('is_deleted').default(false),
+    deletedAt: timestamp('deleted_at'),
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow(),
+    createdBy: integer('created_by').references(() => users.id),
+    updatedBy: integer('updated_by').references(() => users.id)
+  },
+  (t) => ({
+    tenantNameUnique: unique('permission_templates_tenant_name_unique').on(
+      t.tenantId,
+      t.name
+    ),
+    tenantIdIdx: index('idx_permission_templates_tenant_id').on(t.tenantId),
+    isDeletedIdx: index('idx_permission_templates_is_deleted').on(t.isDeleted)
+  })
+);
+
+// 模板-权限关联表
+export const templatePermissions = pgTable(
+  'template_permissions',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+    templateId: integer('template_id')
+      .notNull()
+      .references(() => permissionTemplates.id, { onDelete: 'cascade' }),
+    permissionId: integer('permission_id')
+      .notNull()
+      .references(() => permissions.id, { onDelete: 'cascade' }),
+    tenantId: bigint('tenant_id', { mode: 'number' }).notNull().default(1),
+    createdAt: timestamp('created_at').defaultNow()
+  },
+  (t) => ({
+    unq: unique('template_permission_tenant_unique').on(
+      t.tenantId,
+      t.templateId,
+      t.permissionId
+    ),
+    templateIdIdx: index('idx_template_permissions_template_id').on(
+      t.templateId
+    ),
+    permissionIdIdx: index('idx_template_permissions_permission_id').on(
+      t.permissionId
+    )
+  })
+);
+
+// 权限模板类型
+export type PermissionTemplate = typeof permissionTemplates.$inferSelect;
+export type NewPermissionTemplate = typeof permissionTemplates.$inferInsert;
+
+// 模板权限关联类型
+export type TemplatePermission = typeof templatePermissions.$inferSelect;
+export type NewTemplatePermission = typeof templatePermissions.$inferInsert;
+
+// 权限模板关系定义
+export const permissionTemplatesRelations = relations(
+  permissionTemplates,
+  ({ one, many }) => ({
+    tenant: one(tenants, {
+      fields: [permissionTemplates.tenantId],
+      references: [tenants.id]
+    }),
+    templatePermissions: many(templatePermissions),
+    createdBy: one(users, {
+      fields: [permissionTemplates.createdBy],
+      references: [users.id]
+    }),
+    updatedBy: one(users, {
+      fields: [permissionTemplates.updatedBy],
+      references: [users.id]
+    })
+  })
+);
+
+export const templatePermissionsRelations = relations(
+  templatePermissions,
+  ({ one }) => ({
+    template: one(permissionTemplates, {
+      fields: [templatePermissions.templateId],
+      references: [permissionTemplates.id]
+    }),
+    permission: one(permissions, {
+      fields: [templatePermissions.permissionId],
+      references: [permissions.id]
+    }),
+    tenant: one(tenants, {
+      fields: [templatePermissions.tenantId],
+      references: [tenants.id]
+    })
+  })
+);

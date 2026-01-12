@@ -1,6 +1,6 @@
 import { db } from '@/db';
-import { permissions } from '@/db/schema';
-import { like, and, gte, lte, count } from 'drizzle-orm';
+import { permissions, rolePermissions } from '@/db/schema';
+import { like, and, gte, lte, count, eq, isNull } from 'drizzle-orm';
 import { successResponse, errorResponse } from '@/service/response';
 
 export async function GET(request: Request) {
@@ -8,6 +8,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const name = searchParams.get('name');
     const code = searchParams.get('code');
+    const type = searchParams.get('type');
     const description = searchParams.get('description');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
     const offset = (validPage - 1) * validLimit;
 
     // 构建查询条件
-    const conditions = [];
+    const conditions = [eq(permissions.isDeleted, false)];
 
     if (name) {
       conditions.push(like(permissions.name, `%${name}%`));
@@ -28,6 +29,10 @@ export async function GET(request: Request) {
 
     if (code) {
       conditions.push(like(permissions.code, `%${code}%`));
+    }
+
+    if (type && type !== 'all') {
+      conditions.push(eq(permissions.type, type as any));
     }
 
     if (description) {
@@ -43,7 +48,7 @@ export async function GET(request: Request) {
     }
 
     // 构建基础查询
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    const whereClause = and(...conditions);
 
     // 获取总数
     const [totalResult] = await db
@@ -53,31 +58,48 @@ export async function GET(request: Request) {
 
     const total = totalResult.count;
 
-    // 获取分页数据
-    const baseQuery = db
+    // 获取分页数据，包含角色使用数量
+    const permissionList = await db
       .select({
         id: permissions.id,
         name: permissions.name,
         code: permissions.code,
+        type: permissions.type,
         description: permissions.description,
         parentId: permissions.parentId,
         sortOrder: permissions.sortOrder,
+        isSystem: permissions.isSystem,
+        frontPath: permissions.frontPath,
+        apiPath: permissions.apiPath,
+        method: permissions.method,
+        resourceType: permissions.resourceType,
+        status: permissions.status,
         createdAt: permissions.createdAt,
-        updatedAt: permissions.updatedAt
+        updatedAt: permissions.updatedAt,
+        roleUsageCount: count(rolePermissions.roleId)
       })
-      .from(permissions);
-
-    const query = whereClause ? baseQuery.where(whereClause) : baseQuery;
-
-    const permissionList = await query
+      .from(permissions)
+      .leftJoin(
+        rolePermissions,
+        eq(permissions.id, rolePermissions.permissionId)
+      )
+      .where(whereClause)
+      .groupBy(permissions.id)
+      .orderBy(permissions.sortOrder, permissions.createdAt)
       .limit(validLimit)
-      .offset(offset)
-      .orderBy(permissions.createdAt);
+      .offset(offset);
+
+    // 转换数据格式
+    const formattedList = permissionList.map((p) => ({
+      ...p,
+      isSystem: p.isSystem || false,
+      roleUsageCount: Number(p.roleUsageCount) || 0
+    }));
 
     // 计算分页信息
     const totalPages = Math.ceil(total / validLimit);
 
-    return successResponse(permissionList, {
+    return successResponse(formattedList, {
       page: validPage,
       limit: validLimit,
       total,
@@ -92,15 +114,42 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, code, description } = body;
-
-    await db.insert(permissions).values({
+    const {
       name,
       code,
-      description
-    });
+      type = 'page',
+      description,
+      parentId,
+      sortOrder = 0,
+      frontPath,
+      apiPath,
+      method,
+      resourceType
+    } = body;
 
-    return successResponse({ message: '权限创建成功' });
+    if (!name || !code) {
+      return errorResponse('权限名称和标识不能为空');
+    }
+
+    const [newPermission] = await db
+      .insert(permissions)
+      .values({
+        name,
+        code,
+        type,
+        description: description || null,
+        parentId: parentId || null,
+        sortOrder,
+        isSystem: false,
+        frontPath: frontPath || null,
+        apiPath: apiPath || null,
+        method: method || null,
+        resourceType: resourceType || null,
+        status: 'active'
+      })
+      .returning();
+
+    return successResponse(newPermission, '权限创建成功');
   } catch (error) {
     console.error('创建权限失败:', error);
     return errorResponse('创建权限失败');

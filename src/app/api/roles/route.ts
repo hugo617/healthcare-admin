@@ -9,6 +9,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const name = searchParams.get('name');
+    const status = searchParams.get('status');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     const page = parseInt(searchParams.get('page') || '1');
@@ -24,6 +25,22 @@ export async function GET(request: Request) {
 
     if (name) {
       conditions.push(like(roles.name, `%${name}%`));
+    }
+
+    // 处理删除状态筛选
+    // status='deleted': 只显示已删除的角色
+    // status='all' 或不传: 只显示未删除的角色
+    // status='active'/'inactive': 显示对应状态且未删除的角色
+    if (status === 'deleted') {
+      conditions.push(eq(roles.isDeleted, true));
+    } else {
+      // 默认情况下（包括 'all'、'active'、'inactive'），只显示未删除的角色
+      conditions.push(eq(roles.isDeleted, false));
+    }
+
+    // 处理状态筛选
+    if (status && status !== 'all') {
+      conditions.push(eq(roles.status, status));
     }
 
     if (startDate) {
@@ -51,6 +68,7 @@ export async function GET(request: Request) {
         id: roles.id,
         name: roles.name,
         description: roles.description,
+        status: roles.status,
         isSuper: roles.isSuper,
         createdAt: roles.createdAt,
         updatedAt: roles.updatedAt,
@@ -62,6 +80,7 @@ export async function GET(request: Request) {
         roles.id,
         roles.name,
         roles.description,
+        roles.status,
         roles.isSuper,
         roles.createdAt,
         roles.updatedAt

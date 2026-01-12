@@ -2,6 +2,7 @@ export interface Role {
   id: number;
   name: string;
   description?: string;
+  status?: 'active' | 'inactive' | 'deleted';
   createdAt: string;
   updatedAt?: string;
   userCount?: number;
@@ -20,7 +21,7 @@ export interface Permission {
 
 export interface RoleFilters {
   name?: string;
-  status?: 'all' | 'normal' | 'super';
+  status?: 'all' | 'active' | 'inactive' | 'deleted';
   dateRange?: { from: Date; to: Date } | undefined;
   page?: number;
   limit?: number;
