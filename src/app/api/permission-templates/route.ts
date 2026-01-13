@@ -1,7 +1,12 @@
 import { db } from '@/db';
 import { permissionTemplates, templatePermissions } from '@/db/schema';
-import { eq, and, desc, asc } from 'drizzle-orm';
-import { successResponse, errorResponse } from '@/service/response';
+import { eq, and, desc, asc, sql } from 'drizzle-orm';
+import {
+  successResponse,
+  errorResponse,
+  unauthorizedResponse
+} from '@/service/response';
+import { getCurrentUser } from '@/lib/auth';
 
 /**
  * GET /api/permission-templates
@@ -9,6 +14,11 @@ import { successResponse, errorResponse } from '@/service/response';
  */
 export async function GET(request: Request) {
   try {
+    const user = getCurrentUser(request);
+    if (!user) {
+      return unauthorizedResponse('未授权');
+    }
+
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search');
 
@@ -23,7 +33,12 @@ export async function GET(request: Request) {
         updatedAt: permissionTemplates.updatedAt
       })
       .from(permissionTemplates)
-      .where(eq(permissionTemplates.isDeleted, false))
+      .where(
+        and(
+          eq(permissionTemplates.isDeleted, false),
+          eq(permissionTemplates.tenantId, user.tenantId)
+        )
+      )
       .orderBy(
         desc(permissionTemplates.isSystem),
         asc(permissionTemplates.createdAt)
@@ -68,6 +83,11 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
   try {
+    const user = getCurrentUser(request);
+    if (!user) {
+      return unauthorizedResponse('未授权');
+    }
+
     const body = await request.json();
     const { name, description, permissionIds } = body;
 
@@ -81,7 +101,9 @@ export async function POST(request: Request) {
       .values({
         name,
         description: description || null,
-        isSystem: false
+        isSystem: false,
+        tenantId: user.tenantId,
+        createdBy: user.id
       })
       .returning();
 
@@ -93,7 +115,8 @@ export async function POST(request: Request) {
     ) {
       const values = permissionIds.map((permissionId: number) => ({
         templateId: newTemplate.id,
-        permissionId
+        permissionId,
+        tenantId: user.tenantId
       }));
 
       await db.insert(templatePermissions).values(values);

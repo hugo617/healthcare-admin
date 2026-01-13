@@ -119,7 +119,7 @@ export interface TenantAuditLog {
 }
 
 /**
- * 租户统计信息接口
+ * 租户统计信息接口（扩展版）
  */
 export interface TenantStats {
   totalTenants: number;
@@ -129,6 +129,74 @@ export interface TenantStats {
   totalUsers: number;
   recentTenants: Tenant[];
 }
+
+/**
+ * 租户统计数据接口（用于统计卡片组件）
+ */
+export interface TenantStatisticsData {
+  overview: {
+    total: number;
+    active: number;
+    inactive: number;
+    suspended: number;
+    activeRate: number;
+  };
+  users: {
+    total: number;
+    active: number;
+  };
+  engagement: {
+    recentActive: number;
+    activeRate: number;
+    avgActivity: number;
+  };
+  growth: {
+    today: number;
+    week: number;
+    thisMonth: number;
+    lastMonth: number;
+    growthRate: number;
+  };
+}
+
+/**
+ * 批量操作请求接口
+ */
+export interface BatchOperationRequest {
+  operation: 'activate' | 'deactivate' | 'suspend' | 'delete';
+  tenantIds: string[];
+}
+
+/**
+ * 批量操作响应接口
+ */
+export interface BatchOperationResponse {
+  success: number;
+  failed: number;
+  errors: Array<{ tenantId: string; error: string }>;
+}
+
+/**
+ * 租户配置表单接口
+ */
+export interface TenantConfigForm {
+  maxUsers: number;
+  allowCustomBranding: boolean;
+  enableAPIAccess: boolean;
+  defaultRole: string;
+  sessionTimeout: number;
+  features: {
+    analytics: boolean;
+    customDomain: boolean;
+    sso: boolean;
+    auditLog: boolean;
+  };
+}
+
+/**
+ * 导出格式类型
+ */
+export type ExportFormat = 'csv' | 'xlsx';
 
 /**
  * 状态操作配置
@@ -210,6 +278,17 @@ export interface UseTenantManagementReturn {
   deleteTenant: (id: string) => Promise<boolean>;
   toggleTenantStatus: (id: string, status: TenantStatus) => Promise<boolean>;
   error?: string;
+  // 新增返回类型
+  statistics?: TenantStatisticsData;
+  selectedTenants: Set<string>;
+  fetchStatistics: () => Promise<void>;
+  batchOperateTenants: (
+    operation: 'activate' | 'deactivate' | 'suspend' | 'delete'
+  ) => Promise<boolean>;
+  toggleTenantSelection: (id: string) => void;
+  toggleAllSelection: () => void;
+  clearTenantSelection: () => void;
+  exportTenants: (format?: ExportFormat) => Promise<void>;
 }
 
 /**

@@ -6,7 +6,9 @@ import type {
   TenantFilters,
   TenantApiResponse,
   CreateTenantRequest,
-  UpdateTenantRequest
+  UpdateTenantRequest,
+  BatchOperationRequest,
+  ExportFormat
 } from '../types';
 
 /**
@@ -21,7 +23,12 @@ export class TenantService {
     options?: RequestInit
   ): Promise<TenantApiResponse> {
     try {
-      clientLogger.debug('TenantService', 'getTenants', 'Fetching tenants with filters', filters);
+      clientLogger.debug(
+        'TenantService',
+        'getTenants',
+        'Fetching tenants with filters',
+        filters
+      );
 
       const params = {
         page: filters.page,
@@ -34,11 +41,21 @@ export class TenantService {
 
       // 注意：options 中的 signal 参数暂时被忽略，因为 TenantAPI.getTenants 不支持
       const response = await TenantAPI.getTenants(params);
-      clientLogger.debug('TenantService', 'getTenants', 'Received response:', response);
+      clientLogger.debug(
+        'TenantService',
+        'getTenants',
+        'Received response:',
+        response
+      );
 
       return response;
     } catch (error) {
-      clientLogger.error('TenantService', 'getTenants', 'Error in getTenants:', { error: error.message });
+      clientLogger.error(
+        'TenantService',
+        'getTenants',
+        'Error in getTenants:',
+        { error: error.message }
+      );
       throw error;
     }
   }
@@ -48,7 +65,12 @@ export class TenantService {
    */
   async createTenant(data: TenantFormData): Promise<TenantApiResponse> {
     try {
-      clientLogger.debug('TenantService', 'createTenant', 'Creating tenant:', data);
+      clientLogger.debug(
+        'TenantService',
+        'createTenant',
+        'Creating tenant:',
+        data
+      );
 
       const createRequest: CreateTenantRequest = {
         name: data.name,
@@ -58,11 +80,21 @@ export class TenantService {
       };
 
       const response = await TenantAPI.createTenant(createRequest);
-      clientLogger.debug('TenantService', 'createTenant', 'Create tenant response:', response);
+      clientLogger.debug(
+        'TenantService',
+        'createTenant',
+        'Create tenant response:',
+        response
+      );
 
       return response;
     } catch (error) {
-      clientLogger.error('TenantService', 'createTenant', 'Error in createTenant:', { error: error.message });
+      clientLogger.error(
+        'TenantService',
+        'createTenant',
+        'Error in createTenant:',
+        { error: error.message }
+      );
       throw error;
     }
   }
@@ -70,9 +102,15 @@ export class TenantService {
   /**
    * 更新租户
    */
-  async updateTenant(id: string, data: TenantFormData): Promise<TenantApiResponse> {
+  async updateTenant(
+    id: string,
+    data: TenantFormData
+  ): Promise<TenantApiResponse> {
     try {
-      clientLogger.debug('TenantService', 'updateTenant', 'Updating tenant:', { id, data });
+      clientLogger.debug('TenantService', 'updateTenant', 'Updating tenant:', {
+        id,
+        data
+      });
 
       const updateRequest: UpdateTenantRequest = {
         name: data.name,
@@ -81,11 +119,21 @@ export class TenantService {
       };
 
       const response = await TenantAPI.updateTenant(id, updateRequest);
-      clientLogger.debug('TenantService', 'updateTenant', 'Update tenant response:', response);
+      clientLogger.debug(
+        'TenantService',
+        'updateTenant',
+        'Update tenant response:',
+        response
+      );
 
       return response;
     } catch (error) {
-      clientLogger.error('TenantService', 'updateTenant', 'Error in updateTenant:', { error: error.message });
+      clientLogger.error(
+        'TenantService',
+        'updateTenant',
+        'Error in updateTenant:',
+        { error: error.message }
+      );
       throw error;
     }
   }
@@ -95,14 +143,26 @@ export class TenantService {
    */
   async deleteTenant(id: string): Promise<TenantApiResponse> {
     try {
-      clientLogger.debug('TenantService', 'deleteTenant', 'Deleting tenant:', { id });
+      clientLogger.debug('TenantService', 'deleteTenant', 'Deleting tenant:', {
+        id
+      });
 
       const response = await TenantAPI.deleteTenant(id);
-      clientLogger.debug('TenantService', 'deleteTenant', 'Delete tenant response:', response);
+      clientLogger.debug(
+        'TenantService',
+        'deleteTenant',
+        'Delete tenant response:',
+        response
+      );
 
       return response;
     } catch (error) {
-      clientLogger.error('TenantService', 'deleteTenant', 'Error in deleteTenant:', { error: error.message });
+      clientLogger.error(
+        'TenantService',
+        'deleteTenant',
+        'Error in deleteTenant:',
+        { error: error.message }
+      );
       throw error;
     }
   }
@@ -115,14 +175,29 @@ export class TenantService {
     status: 'active' | 'inactive' | 'suspended'
   ): Promise<TenantApiResponse> {
     try {
-      clientLogger.debug('TenantService', 'updateTenantStatus', 'Updating tenant status:', { id, status });
+      clientLogger.debug(
+        'TenantService',
+        'updateTenantStatus',
+        'Updating tenant status:',
+        { id, status }
+      );
 
       const response = await TenantAPI.updateTenantStatus(id, status);
-      clientLogger.debug('TenantService', 'updateTenantStatus', 'Update tenant status response:', response);
+      clientLogger.debug(
+        'TenantService',
+        'updateTenantStatus',
+        'Update tenant status response:',
+        response
+      );
 
       return response;
     } catch (error) {
-      clientLogger.error('TenantService', 'updateTenantStatus', 'Error in updateTenantStatus:', { error: error.message });
+      clientLogger.error(
+        'TenantService',
+        'updateTenantStatus',
+        'Error in updateTenantStatus:',
+        { error: error.message }
+      );
       throw error;
     }
   }
@@ -132,14 +207,26 @@ export class TenantService {
    */
   async getTenant(id: string): Promise<TenantApiResponse> {
     try {
-      clientLogger.debug('TenantService', 'getTenant', 'Getting tenant details:', { id });
+      clientLogger.debug(
+        'TenantService',
+        'getTenant',
+        'Getting tenant details:',
+        { id }
+      );
 
       const response = await TenantAPI.getTenant(id);
-      clientLogger.debug('TenantService', 'getTenant', 'Get tenant response:', response);
+      clientLogger.debug(
+        'TenantService',
+        'getTenant',
+        'Get tenant response:',
+        response
+      );
 
       return response;
     } catch (error) {
-      clientLogger.error('TenantService', 'getTenant', 'Error in getTenant:', { error: error.message });
+      clientLogger.error('TenantService', 'getTenant', 'Error in getTenant:', {
+        error: error.message
+      });
       throw error;
     }
   }
@@ -149,14 +236,28 @@ export class TenantService {
    */
   async getTenantStats(): Promise<TenantApiResponse> {
     try {
-      clientLogger.debug('TenantService', 'getTenantStats', 'Getting tenant stats');
+      clientLogger.debug(
+        'TenantService',
+        'getTenantStats',
+        'Getting tenant stats'
+      );
 
       const response = await TenantAPI.getTenantStats();
-      clientLogger.debug('TenantService', 'getTenantStats', 'Get tenant stats response:', response);
+      clientLogger.debug(
+        'TenantService',
+        'getTenantStats',
+        'Get tenant stats response:',
+        response
+      );
 
       return response;
     } catch (error) {
-      clientLogger.error('TenantService', 'getTenantStats', 'Error in getTenantStats:', { error: error.message });
+      clientLogger.error(
+        'TenantService',
+        'getTenantStats',
+        'Error in getTenantStats:',
+        { error: error.message }
+      );
       throw error;
     }
   }
@@ -166,15 +267,123 @@ export class TenantService {
    */
   async getTenantUserCount(id: string): Promise<number> {
     try {
-      clientLogger.debug('TenantService', 'getTenantUserCount', 'Getting tenant user count:', { id });
+      clientLogger.debug(
+        'TenantService',
+        'getTenantUserCount',
+        'Getting tenant user count:',
+        { id }
+      );
 
       const response = await TenantAPI.getTenantUserCount(id);
-      clientLogger.debug('TenantService', 'getTenantUserCount', 'Get tenant user count response:', response);
+      clientLogger.debug(
+        'TenantService',
+        'getTenantUserCount',
+        'Get tenant user count response:',
+        response
+      );
 
       return response.data?.count || 0;
     } catch (error) {
-      clientLogger.error('TenantService', 'getTenantUserCount', 'Error in getTenantUserCount:', { error: error.message });
+      clientLogger.error(
+        'TenantService',
+        'getTenantUserCount',
+        'Error in getTenantUserCount:',
+        { error: error.message }
+      );
       return 0;
+    }
+  }
+
+  /**
+   * 批量操作租户
+   */
+  async batchOperateTenants(
+    request: BatchOperationRequest
+  ): Promise<TenantApiResponse> {
+    try {
+      clientLogger.debug(
+        'TenantService',
+        'batchOperateTenants',
+        'Batch operating tenants:',
+        request
+      );
+
+      const response = await fetch('/api/tenants/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || '批量操作失败');
+      }
+
+      clientLogger.debug(
+        'TenantService',
+        'batchOperateTenants',
+        'Batch operate response:',
+        data
+      );
+
+      return data;
+    } catch (error) {
+      clientLogger.error(
+        'TenantService',
+        'batchOperateTenants',
+        'Error in batchOperateTenants:',
+        { error: error.message }
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * 导出租户数据
+   */
+  async exportTenants(format: ExportFormat = 'csv'): Promise<void> {
+    try {
+      clientLogger.debug(
+        'TenantService',
+        'exportTenants',
+        'Exporting tenants:',
+        { format }
+      );
+
+      const response = await fetch('/api/tenants/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ format })
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error?.message || '导出失败');
+      }
+
+      // 获取文件内容
+      const blob = await response.blob();
+
+      // 创建下载链接
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tenants_${new Date().toISOString()}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      clientLogger.debug('TenantService', 'exportTenants', 'Export completed');
+    } catch (error) {
+      clientLogger.error(
+        'TenantService',
+        'exportTenants',
+        'Error in exportTenants:',
+        { error: error.message }
+      );
+      throw error;
     }
   }
 }

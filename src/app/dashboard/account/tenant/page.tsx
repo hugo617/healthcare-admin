@@ -13,10 +13,17 @@ import {
   TenantTable,
   TenantFilters,
   TenantDialogs,
-  TenantPageHeader
+  TenantPageHeader,
+  TenantStatistics,
+  FloatingBatchActions
 } from './components';
 import { useTenantFilters, useTenantManagement } from './hooks';
-import { Tenant, TenantFormData, TenantDialogState } from './types';
+import {
+  Tenant,
+  TenantFormData,
+  TenantDialogState,
+  ExportFormat
+} from './types';
 import { PAGE_SIZE_OPTIONS, DIALOG_TYPES } from './constants';
 
 export default function TenantManagementPage() {
@@ -36,7 +43,16 @@ export default function TenantManagementPage() {
     createTenant,
     updateTenant,
     deleteTenant,
-    toggleTenantStatus
+    toggleTenantStatus,
+    // 新增：统计数据、批量操作、导出
+    statistics,
+    selectedTenants,
+    fetchStatistics,
+    batchOperateTenants,
+    toggleTenantSelection,
+    toggleAllSelection,
+    clearTenantSelection,
+    exportTenants
   } = useTenantManagement();
 
   // 对话框状态
@@ -50,6 +66,11 @@ export default function TenantManagementPage() {
   useEffect(() => {
     fetchTenants(filters);
   }, [filters, fetchTenants]);
+
+  // 页面加载时获取统计数据
+  useEffect(() => {
+    fetchStatistics();
+  }, [fetchStatistics]);
 
   /**
    * 打开创建租户对话框
@@ -76,7 +97,10 @@ export default function TenantManagementPage() {
   /**
    * 打开状态切换对话框
    */
-  const handleOpenStatusDialog = (tenant: Tenant, action: 'activate' | 'deactivate' | 'suspend') => {
+  const handleOpenStatusDialog = (
+    tenant: Tenant,
+    action: 'activate' | 'deactivate' | 'suspend'
+  ) => {
     setDialogState({
       type: DIALOG_TYPES.STATUS as any,
       tenant,
@@ -113,8 +137,8 @@ export default function TenantManagementPage() {
   const handleCreateTenant = async (data: TenantFormData) => {
     const success = await createTenant(data);
     if (success) {
+      await fetchTenants(filters);
       handleCloseDialog();
-      fetchTenants(filters);
     }
     return success;
   };
@@ -127,8 +151,9 @@ export default function TenantManagementPage() {
 
     const success = await updateTenant(dialogState.tenant.id, data);
     if (success) {
+      // 先刷新数据，再关闭对话框
+      await fetchTenants(filters);
       handleCloseDialog();
-      fetchTenants(filters);
     }
     return success;
   };
@@ -139,8 +164,8 @@ export default function TenantManagementPage() {
   const handleDeleteTenant = async (tenant: Tenant) => {
     const success = await deleteTenant(tenant.id);
     if (success) {
+      await fetchTenants(filters);
       handleCloseDialog();
-      fetchTenants(filters);
     }
     return success;
   };
@@ -148,7 +173,10 @@ export default function TenantManagementPage() {
   /**
    * 切换租户状态
    */
-  const handleToggleStatus = async (tenant: Tenant, action: 'activate' | 'deactivate' | 'suspend') => {
+  const handleToggleStatus = async (
+    tenant: Tenant,
+    action: 'activate' | 'deactivate' | 'suspend'
+  ) => {
     let newStatus: 'active' | 'inactive' | 'suspended';
 
     switch (action) {
@@ -165,18 +193,94 @@ export default function TenantManagementPage() {
 
     const success = await toggleTenantStatus(tenant.id, newStatus);
     if (success) {
+      await fetchTenants(filters);
       handleCloseDialog();
-      fetchTenants(filters);
     }
     return success;
   };
 
+  /**
+   * 打开配置对话框
+   */
+  const handleOpenConfigDialog = (tenant: Tenant) => {
+    setDialogState({
+      type: DIALOG_TYPES.CONFIG as any,
+      tenant,
+      open: true
+    });
+  };
+
+  /**
+   * 刷新数据
+   */
+  const handleRefresh = () => {
+    fetchStatistics();
+    fetchTenants(filters);
+  };
+
+  /**
+   * 导出租户
+   */
+  const handleExport = () => {
+    exportTenants('csv');
+  };
+
+  /**
+   * 批量启用
+   */
+  const handleBatchActivate = async () => {
+    const success = await batchOperateTenants('activate');
+    if (success) {
+      fetchTenants(filters);
+    }
+  };
+
+  /**
+   * 批量停用
+   */
+  const handleBatchDeactivate = async () => {
+    const success = await batchOperateTenants('deactivate');
+    if (success) {
+      fetchTenants(filters);
+    }
+  };
+
+  /**
+   * 批量暂停
+   */
+  const handleBatchSuspend = async () => {
+    const success = await batchOperateTenants('suspend');
+    if (success) {
+      fetchTenants(filters);
+    }
+  };
+
+  /**
+   * 批量删除
+   */
+  const handleBatchDelete = async () => {
+    const success = await batchOperateTenants('delete');
+    if (success) {
+      fetchTenants(filters);
+    }
+  };
+
   return (
     <PermissionGuard permissions={[PERMISSIONS.TENANT.READ]}>
-      <PageContainer scrollable={false}>
-        <div className='flex h-[calc(100vh-8rem)] w-full flex-col space-y-4'>
-          {/* 页面头部 */}
-          <TenantPageHeader onCreateTenant={handleOpenCreateDialog} />
+      <PageContainer scrollable={true} bentoMode={true}>
+        <div className='flex min-h-[calc(100vh-8rem)] w-full flex-col space-y-3 p-4'>
+          {/* 头部区域：包含标题、操作按钮和统计卡片 */}
+          <div className='space-y-3'>
+            <TenantPageHeader
+              onCreateTenant={handleOpenCreateDialog}
+              onExportTenants={handleExport}
+              onRefresh={handleRefresh}
+              totalTenants={statistics?.overview.total}
+              activeTenants={statistics?.overview.active}
+              loading={loading}
+            />
+            <TenantStatistics statistics={statistics} loading={loading} />
+          </div>
 
           {/* 搜索和筛选 */}
           <TenantFilters
@@ -188,7 +292,7 @@ export default function TenantManagementPage() {
 
           {/* 数据表格和分页 */}
           <div className='flex min-h-0 flex-1 flex-col'>
-            <div className='min-h-0'>
+            <div className='min-h-0 flex-1'>
               <TenantTable
                 tenants={tenants}
                 loading={loading}
@@ -196,6 +300,10 @@ export default function TenantManagementPage() {
                 onEdit={handleOpenEditDialog}
                 onDelete={handleOpenDeleteDialog}
                 onToggleStatus={handleOpenStatusDialog}
+                selectedTenants={selectedTenants}
+                onToggleSelection={toggleTenantSelection}
+                onToggleAll={toggleAllSelection}
+                onOpenConfig={handleOpenConfigDialog}
                 emptyState={{
                   icon: <Building2 className='text-muted-foreground h-8 w-8' />,
                   title: hasActiveFilters ? '未找到匹配的租户' : '还没有租户',
@@ -240,6 +348,17 @@ export default function TenantManagementPage() {
             onDeleteTenant={handleDeleteTenant}
             onToggleStatus={handleToggleStatus}
             loading={loading}
+          />
+
+          {/* 浮动批量操作栏 */}
+          <FloatingBatchActions
+            selectedCount={selectedTenants.size}
+            onBatchActivate={handleBatchActivate}
+            onBatchDeactivate={handleBatchDeactivate}
+            onBatchSuspend={handleBatchSuspend}
+            onBatchDelete={handleBatchDelete}
+            onClearSelection={clearTenantSelection}
+            visible={selectedTenants.size > 0}
           />
         </div>
       </PageContainer>

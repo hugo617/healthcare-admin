@@ -13,3 +13,7 @@ export { TenantForm } from './TenantForm';
 export { TenantPageHeader } from './TenantPageHeader';
 export { TenantDialogs } from './TenantDialogs';
 
+// 统计和批量操作组件
+export { TenantStatistics } from './TenantStatistics';
+export { FloatingBatchActions } from './FloatingBatchActions';
+export type { TenantStatisticsData } from './TenantStatistics';

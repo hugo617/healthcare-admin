@@ -1,7 +1,10 @@
+'use client';
+
 import React, { useState } from 'react';
-import { Search, Filter, RotateCcw } from 'lucide-react';
+import { Search, X, ChevronDown, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -9,20 +12,15 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
-import type { TenantFilters } from '../types';
+import { cn } from '@/lib/utils';
+import type { TenantFilters as FiltersType } from '../types';
 import { TENANT_STATUS, SORT_OPTIONS } from '../constants';
 
 interface TenantFiltersProps {
   /** 当前过滤器状态 */
-  filters: TenantFilters;
+  filters: FiltersType;
   /** 搜索回调 */
-  onSearch: (filters: Partial<TenantFilters>) => void;
+  onSearch: (filters: Partial<FiltersType>) => void;
   /** 重置过滤器回调 */
   onReset: () => void;
   /** 加载状态 */
@@ -30,7 +28,7 @@ interface TenantFiltersProps {
 }
 
 /**
- * 租户过滤器组件
+ * 租户过滤器组件 - 现代简约风格
  * 提供搜索、状态筛选、排序等功能
  */
 export function TenantFilters({
@@ -49,12 +47,12 @@ export function TenantFilters({
 
   // 处理状态筛选
   const handleStatusChange = (status: string) => {
-    // 如果选择"全部状态"，则清除status筛选
-    onSearch({ status: status === 'all' ? undefined : status as any });
+    onSearch({ status: status === 'all' ? undefined : (status as any) });
   };
 
   // 处理排序
-  const handleSortChange = (sortBy: string, sortOrder: 'asc' | 'desc' = 'desc') => {
+  const handleSortChange = (value: string) => {
+    const [sortBy, sortOrder] = value.split('-') as [string, 'asc' | 'desc'];
     onSearch({ sortBy, sortOrder });
   };
 
@@ -64,34 +62,31 @@ export function TenantFilters({
     onSearch({ keyword: undefined });
   };
 
-  // 获取当前排序显示文本
-  const getCurrentSortText = () => {
-    const sortOption = SORT_OPTIONS.find(option => option.value === filters.sortBy);
-    if (!sortOption) return '排序方式';
-    return `${sortOption.label} (${filters.sortOrder === 'asc' ? '升序' : '降序'})`;
+  // 构建排序值
+  const getSortValue = () => {
+    return `${filters.sortBy || 'createdAt'}-${filters.sortOrder || 'desc'}`;
   };
 
-  // 获取当前状态显示文本
-  const getCurrentStatusText = () => {
-    if (!filters.status) return '全部状态';
-    switch (filters.status) {
-      case TENANT_STATUS.ACTIVE:
-        return '正常';
-      case TENANT_STATUS.INACTIVE:
-        return '停用';
-      case TENANT_STATUS.SUSPENDED:
-        return '暂停';
-      default:
-        return '全部状态';
-    }
-  };
+  // 是否有活动筛选
+  const hasActiveFilters = !!filters.keyword || !!filters.status;
 
   return (
-    <div className='flex flex-col space-y-4 rounded-lg border bg-white p-4 shadow-sm'>
-      {/* 第一行：搜索框 */}
-      <div className='flex flex-1 items-center space-x-4'>
-        <div className='relative flex-1 max-w-md'>
-          <Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400' />
+    <div
+      className={cn(
+        'flex flex-col gap-4 rounded-2xl border border-gray-200/60 bg-white/80 p-4 shadow-sm backdrop-blur-sm dark:border-gray-700/60 dark:bg-gray-900/80'
+      )}
+    >
+      {/* 主筛选行：搜索 + 筛选器 + 操作 */}
+      <div className='flex flex-wrap items-center gap-3'>
+        {/* 筛选器图标和标签 */}
+        <div className='flex items-center gap-2 text-gray-600 dark:text-gray-400'>
+          <Filter className='h-4 w-4' />
+          <span className='text-sm font-medium'>筛选</span>
+        </div>
+
+        {/* 搜索框 */}
+        <div className='relative max-w-sm min-w-[200px] flex-1'>
+          <Search className='pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500' />
           <Input
             placeholder='搜索租户名称或代码...'
             value={localKeyword}
@@ -101,107 +96,172 @@ export function TenantFilters({
                 handleSearch(localKeyword);
               }
             }}
-            className='pl-10'
+            className={cn(
+              'h-9 pr-8 pl-9',
+              'bg-white/80 dark:bg-gray-800/80',
+              'border-gray-200 dark:border-gray-700',
+              'text-gray-900 dark:text-gray-100',
+              'placeholder:text-gray-400 dark:placeholder:text-gray-500',
+              'focus-visible:border-blue-500 focus-visible:ring-blue-500',
+              'transition-all duration-200'
+            )}
             disabled={loading}
           />
           {localKeyword && (
             <Button
               variant='ghost'
               size='sm'
-              className='absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 p-0'
+              className={cn(
+                'absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2 p-0',
+                'hover:bg-gray-100 dark:hover:bg-gray-800',
+                'transition-colors duration-150'
+              )}
               onClick={handleClearSearch}
               disabled={loading}
             >
-              <RotateCcw className='h-3 w-3' />
+              <X className='h-3.5 w-3.5 text-gray-400' />
             </Button>
           )}
         </div>
 
-        <Button
-          onClick={() => handleSearch(localKeyword)}
+        {/* 状态筛选 */}
+        <Select
+          value={filters.status || 'all'}
+          onValueChange={handleStatusChange}
           disabled={loading}
-          className='shrink-0'
         >
-          <Search className='mr-2 h-4 w-4' />
-          搜索
-        </Button>
-      </div>
-
-      {/* 第二行：筛选器和排序 */}
-      <div className='flex items-center justify-between space-x-4'>
-        <div className='flex items-center space-x-3'>
-          {/* 状态筛选 */}
-          <Select
-            value={filters.status || 'all'}
-            onValueChange={handleStatusChange}
-            disabled={loading}
+          <SelectTrigger
+            className={cn(
+              'h-9 w-[140px]',
+              'bg-white/80 dark:bg-gray-800/80',
+              'border-gray-200 dark:border-gray-700',
+              'transition-all duration-200'
+            )}
           >
-            <SelectTrigger className='w-32'>
-              <SelectValue placeholder={getCurrentStatusText()} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value='all'>全部状态</SelectItem>
-              <SelectItem value={TENANT_STATUS.ACTIVE}>正常</SelectItem>
-              <SelectItem value={TENANT_STATUS.INACTIVE}>停用</SelectItem>
-              <SelectItem value={TENANT_STATUS.SUSPENDED}>暂停</SelectItem>
-            </SelectContent>
-          </Select>
+            <SelectValue placeholder='全部状态' />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value='all'>全部状态</SelectItem>
+            <SelectItem value={TENANT_STATUS.ACTIVE}>正常</SelectItem>
+            <SelectItem value={TENANT_STATUS.INACTIVE}>停用</SelectItem>
+            <SelectItem value={TENANT_STATUS.SUSPENDED}>暂停</SelectItem>
+          </SelectContent>
+        </Select>
 
-          {/* 排序下拉菜单 */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild disabled={loading}>
-              <Button variant='outline' className='w-40 justify-start'>
-                <Filter className='mr-2 h-4 w-4' />
-                {getCurrentSortText()}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className='w-48'>
-              {SORT_OPTIONS.map((option) => (
-                <DropdownMenuItem
-                  key={option.value}
-                  onClick={() => handleSortChange(option.value, 'desc')}
-                  className={filters.sortBy === option.value && filters.sortOrder === 'desc' ? 'bg-accent' : ''}
-                >
-                  {option.label} (降序)
-                </DropdownMenuItem>
-              ))}
-              {SORT_OPTIONS.map((option) => (
-                <DropdownMenuItem
-                  key={`${option.value}-asc`}
-                  onClick={() => handleSortChange(option.value, 'asc')}
-                  className={filters.sortBy === option.value && filters.sortOrder === 'asc' ? 'bg-accent' : ''}
-                >
-                  {option.label} (升序)
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        {/* 排序选择 */}
+        <Select
+          value={getSortValue()}
+          onValueChange={handleSortChange}
+          disabled={loading}
+        >
+          <SelectTrigger
+            className={cn(
+              'h-9 w-[160px]',
+              'bg-white/80 dark:bg-gray-800/80',
+              'border-gray-200 dark:border-gray-700',
+              'transition-all duration-200'
+            )}
+          >
+            <SelectValue placeholder='排序方式' />
+          </SelectTrigger>
+          <SelectContent>
+            {SORT_OPTIONS.map((option) => (
+              <SelectItem
+                key={`${option.value}-desc`}
+                value={`${option.value}-desc`}
+              >
+                {option.label} ↓
+              </SelectItem>
+            ))}
+            {SORT_OPTIONS.map((option) => (
+              <SelectItem
+                key={`${option.value}-asc`}
+                value={`${option.value}-asc`}
+              >
+                {option.label} ↑
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         {/* 重置按钮 */}
-        <Button
-          variant='outline'
-          onClick={onReset}
-          disabled={loading}
-          className='shrink-0'
-        >
-          <RotateCcw className='mr-2 h-4 w-4' />
-          重置
-        </Button>
+        {hasActiveFilters && (
+          <Button
+            variant='ghost'
+            size='sm'
+            onClick={onReset}
+            disabled={loading}
+            className={cn(
+              'h-9 gap-1.5',
+              'text-gray-600 hover:text-gray-900',
+              'dark:text-gray-400 dark:hover:text-gray-200',
+              'transition-colors duration-200'
+            )}
+          >
+            <X className='h-4 w-4' />
+            重置
+          </Button>
+        )}
       </div>
 
       {/* 活跃筛选器标签 */}
-      {(filters.status || filters.sortBy) && (
-        <div className='flex flex-wrap gap-2'>
-          {filters.status && (
-            <div className='inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-sm text-blue-800'>
-              状态: {getCurrentStatusText()}
-            </div>
+      {hasActiveFilters && (
+        <div className='flex flex-wrap items-center gap-2 text-sm'>
+          <span className='text-gray-500 dark:text-gray-400'>当前筛选:</span>
+          {filters.keyword && (
+            <Badge
+              variant='secondary'
+              className={cn(
+                'gap-1.5 px-2.5 py-1',
+                'border-blue-200 bg-blue-50 text-blue-800',
+                'dark:border-blue-800 dark:bg-blue-900/40 dark:text-blue-400',
+                'font-medium',
+                'transition-all duration-200'
+              )}
+            >
+              搜索: {filters.keyword}
+              <button
+                onClick={() => onSearch({ keyword: undefined })}
+                className={cn(
+                  'ml-1 rounded-sm hover:bg-blue-200/50',
+                  'dark:hover:bg-blue-800/50',
+                  'transition-colors duration-150'
+                )}
+                disabled={loading}
+              >
+                <X className='h-3 w-3' />
+              </button>
+            </Badge>
           )}
-          {filters.sortBy && (
-            <div className='inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-sm text-green-800'>
-              排序: {getCurrentSortText()}
-            </div>
+          {filters.status && (
+            <Badge
+              variant='secondary'
+              className={cn(
+                'gap-1.5 px-2.5 py-1',
+                'border-green-200 bg-green-50 text-green-800',
+                'dark:border-green-800 dark:bg-green-900/40 dark:text-green-400',
+                'font-medium',
+                'transition-all duration-200'
+              )}
+            >
+              状态:{' '}
+              {filters.status === TENANT_STATUS.ACTIVE
+                ? '正常'
+                : filters.status === TENANT_STATUS.INACTIVE
+                  ? '停用'
+                  : '暂停'}
+              <button
+                onClick={() => onSearch({ status: undefined })}
+                className={cn(
+                  'ml-1 rounded-sm hover:bg-green-200/50',
+                  'dark:hover:bg-green-800/50',
+                  'transition-colors duration-150'
+                )}
+                disabled={loading}
+              >
+                <X className='h-3 w-3' />
+              </button>
+            </Badge>
           )}
         </div>
       )}

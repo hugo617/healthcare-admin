@@ -3,7 +3,11 @@ import { db } from '@/db';
 import { tenants, systemLogs } from '@/db/schema';
 import { eq, ilike, and, sql, count, desc, asc } from 'drizzle-orm';
 import { Tenant, NewTenant } from '@/db/schema';
-import { requirePermission } from '@/lib/permission-guard';
+import {
+  requirePermission,
+  UnauthorizedError,
+  ForbiddenError
+} from '@/lib/permission-guard';
 import { PERMISSIONS } from '@/lib/permissions';
 import { z } from 'zod';
 
@@ -20,16 +24,21 @@ interface PaginatedResult<T> {
   hasPrev: boolean;
 }
 
-
 /**
  * 租户查询验证 Schema
  */
 const queryTenantSchema = z.object({
   page: z.coerce.number().min(1).default(1),
   pageSize: z.coerce.number().min(1).max(100).default(20),
-  keyword: z.string().optional().transform(val => val && val.trim() !== '' ? val : undefined),
+  keyword: z
+    .string()
+    .optional()
+    .transform((val) => (val && val.trim() !== '' ? val : undefined)),
   status: z.enum(['active', 'inactive', 'suspended']).optional(),
-  sortBy: z.string().optional().transform(val => val && val.trim() !== '' ? val : undefined),
+  sortBy: z
+    .string()
+    .optional()
+    .transform((val) => (val && val.trim() !== '' ? val : undefined)),
   sortOrder: z.enum(['asc', 'desc']).optional()
 });
 
@@ -54,15 +63,24 @@ export async function GET(request: NextRequest) {
       sortOrder: searchParams.get('sortOrder') || undefined
     });
 
-    let query = db.select({
-      id: tenants.id,
-      name: tenants.name,
-      code: tenants.code,
-      status: tenants.status,
-      settings: tenants.settings,
-      createdAt: tenants.createdAt,
-      updatedAt: tenants.updatedAt,
-    }).from(tenants);
+    let query = db
+      .select({
+        id: tenants.id,
+        name: tenants.name,
+        code: tenants.code,
+        status: tenants.status,
+        settings: tenants.settings,
+        createdAt: tenants.createdAt,
+        updatedAt: tenants.updatedAt,
+        // 子查询计算每个租户的用户数
+        userCount: sql<number>`(
+        SELECT COUNT(*)
+        FROM users
+        WHERE users.tenant_id = tenants.id
+        AND users.deleted_at IS NULL
+      )`.as('userCount')
+      })
+      .from(tenants);
 
     // 应用过滤条件
     const conditions = [];
@@ -120,7 +138,7 @@ export async function GET(request: NextRequest) {
       pageSize: queryData.pageSize,
       totalPages,
       hasNext: queryData.page < totalPages,
-      hasPrev: queryData.page > 1,
+      hasPrev: queryData.page > 1
     };
 
     // 序列化BigInt结果
@@ -141,28 +159,59 @@ export async function GET(request: NextRequest) {
       data: serializedResult,
       message: '获取租户列表成功'
     });
-
   } catch (error) {
     console.error('Failed to get tenants:', error);
 
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: '参数验证失败',
-          details: error.issues
-        }
-      }, { status: 400 });
+    if (error instanceof UnauthorizedError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: error.message
+          }
+        },
+        { status: 401 }
+      );
     }
 
-    return NextResponse.json({
-      success: false,
-      error: {
-        code: 'INTERNAL_ERROR',
-        message: '获取租户列表失败'
-      }
-    }, { status: 500 });
+    if (error instanceof ForbiddenError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'FORBIDDEN',
+            message: error.message
+          }
+        },
+        { status: 403 }
+      );
+    }
+
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: '参数验证失败',
+            details: error.issues
+          }
+        },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: '获取租户列表失败'
+        }
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -179,79 +228,105 @@ export async function POST(request: NextRequest) {
 
     // 手动验证请求数据
     if (!body || typeof body !== 'object') {
-      return NextResponse.json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: '请求体不能为空'
-        }
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: '请求体不能为空'
+          }
+        },
+        { status: 400 }
+      );
     }
 
     const { name, code, status = 'active', settings = {} } = body;
 
     // 验证必填字段
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
-      return NextResponse.json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: '租户名称不能为空'
-        }
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: '租户名称不能为空'
+          }
+        },
+        { status: 400 }
+      );
     }
 
     if (!code || typeof code !== 'string' || code.trim().length === 0) {
-      return NextResponse.json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: '租户代码不能为空'
-        }
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: '租户代码不能为空'
+          }
+        },
+        { status: 400 }
+      );
     }
 
     if (name.length > 200) {
-      return NextResponse.json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: '租户名称不能超过200个字符'
-        }
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: '租户名称不能超过200个字符'
+          }
+        },
+        { status: 400 }
+      );
     }
 
     if (code.length > 100) {
-      return NextResponse.json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: '租户代码不能超过100个字符'
-        }
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: '租户代码不能超过100个字符'
+          }
+        },
+        { status: 400 }
+      );
     }
 
     if (!/^[a-zA-Z0-9_-]+$/.test(code)) {
-      return NextResponse.json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: '租户代码只能包含字母、数字、下划线和横线'
-        }
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: '租户代码只能包含字母、数字、下划线和横线'
+          }
+        },
+        { status: 400 }
+      );
     }
 
     if (!['active', 'inactive', 'suspended'].includes(status)) {
-      return NextResponse.json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: '租户状态只能是 active、inactive 或 suspended'
-        }
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: '租户状态只能是 active、inactive 或 suspended'
+          }
+        },
+        { status: 400 }
+      );
     }
 
-    const validatedData = { name: name.trim(), code: code.trim(), status, settings };
+    const validatedData = {
+      name: name.trim(),
+      code: code.trim(),
+      status,
+      settings
+    };
 
     // 检查租户代码是否已存在
     const existingTenant = await db
@@ -261,13 +336,16 @@ export async function POST(request: NextRequest) {
       .limit(1);
 
     if (existingTenant.length > 0) {
-      return NextResponse.json({
-        success: false,
-        error: {
-          code: 'TENANT_CODE_EXISTS',
-          message: '租户代码已存在'
-        }
-      }, { status: 409 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'TENANT_CODE_EXISTS',
+            message: '租户代码已存在'
+          }
+        },
+        { status: 409 }
+      );
     }
 
     // 准备创建数据
@@ -275,14 +353,11 @@ export async function POST(request: NextRequest) {
       name: validatedData.name,
       code: validatedData.code,
       status: validatedData.status,
-      settings: validatedData.settings,
+      settings: validatedData.settings
     };
 
     // 创建租户
-    const result = await db
-      .insert(tenants)
-      .values(newTenantData)
-      .returning();
+    const result = await db.insert(tenants).values(newTenantData).returning();
 
     const createdTenant = result[0];
 
@@ -307,43 +382,80 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    return NextResponse.json({
-      success: true,
-      data: serializedTenant,
-      message: '租户创建成功'
-    }, { status: 201 });
-
+    return NextResponse.json(
+      {
+        success: true,
+        data: serializedTenant,
+        message: '租户创建成功'
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error('Failed to create tenant:', error);
 
+    if (error instanceof UnauthorizedError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: error.message
+          }
+        },
+        { status: 401 }
+      );
+    }
+
+    if (error instanceof ForbiddenError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'FORBIDDEN',
+            message: error.message
+          }
+        },
+        { status: 403 }
+      );
+    }
+
     if (error instanceof z.ZodError) {
-      return NextResponse.json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: '参数验证失败',
-          details: error.issues
-        }
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: '参数验证失败',
+            details: error.issues
+          }
+        },
+        { status: 400 }
+      );
     }
 
     // 检查是否是数据库唯一约束错误
     if (error instanceof Error && error.message.includes('unique constraint')) {
-      return NextResponse.json({
-        success: false,
-        error: {
-          code: 'TENANT_CODE_EXISTS',
-          message: '租户代码已存在'
-        }
-      }, { status: 409 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'TENANT_CODE_EXISTS',
+            message: '租户代码已存在'
+          }
+        },
+        { status: 409 }
+      );
     }
 
-    return NextResponse.json({
-      success: false,
-      error: {
-        code: 'INTERNAL_ERROR',
-        message: '创建租户失败'
-      }
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: '创建租户失败'
+        }
+      },
+      { status: 500 }
+    );
   }
 }

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Geist, Geist_Mono, Poppins, Open_Sans } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/sonner';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
@@ -17,6 +17,21 @@ const geistMono = Geist_Mono({
   subsets: ['latin']
 });
 
+// 现代简约风格字体
+const poppins = Poppins({
+  variable: '--font-poppins',
+  subsets: ['latin'],
+  display: 'swap',
+  weight: ['400', '500', '600', '700']
+});
+
+const openSans = Open_Sans({
+  variable: '--font-open-sans',
+  subsets: ['latin'],
+  display: 'swap',
+  weight: ['300', '400', '500', '600', '700']
+});
+
 export const metadata: Metadata = {
   title: siteConfig.name,
   description: siteConfig.description
@@ -31,7 +46,7 @@ export default async function RootLayout({
   return (
     <html lang='en' suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${poppins.variable} ${openSans.variable} antialiased`}
       >
         <NuqsAdapter>
           <Providers session={session}>

@@ -81,6 +81,8 @@ export const TABLE_COLUMNS = [
   { key: 'code', title: '租户代码', sortable: true },
   { key: 'status', title: '状态', sortable: true },
   { key: 'userCount', title: '用户数量', sortable: false },
+  { key: 'maxUsers', title: '最大用户数', sortable: false },
+  { key: 'sessionTimeout', title: '会话超时', sortable: false },
   { key: 'createdAt', title: '创建时间', sortable: true },
   { key: 'actions', title: '操作', sortable: false }
 ] as const;
@@ -103,7 +105,8 @@ export const STATUS_ACTIONS = {
     description: '确定要停用此租户吗？停用后新用户无法注册。',
     variant: 'secondary' as const,
     requiresConfirmation: true,
-    confirmationMessage: '停用后，该租户的新用户将无法注册，但现有用户仍可登录。'
+    confirmationMessage:
+      '停用后，该租户的新用户将无法注册，但现有用户仍可登录。'
   },
   suspend: {
     type: 'suspend' as const,
@@ -111,7 +114,8 @@ export const STATUS_ACTIONS = {
     description: '确定要暂停此租户吗？暂停后将立即踢出所有用户。',
     variant: 'destructive' as const,
     requiresConfirmation: true,
-    confirmationMessage: '暂停后，该租户的所有用户将被立即踢出系统且无法重新登录。'
+    confirmationMessage:
+      '暂停后，该租户的所有用户将被立即踢出系统且无法重新登录。'
   }
 } as const;
 

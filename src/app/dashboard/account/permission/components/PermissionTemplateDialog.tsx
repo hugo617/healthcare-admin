@@ -49,6 +49,7 @@ import {
 import { toast } from 'sonner';
 import { PermissionSelector } from './PermissionSelector';
 import type { PermissionTemplate, Permission } from '../../types';
+import { apiRequest } from '@/service/api/base';
 
 interface PermissionTemplateDialogProps {
   open: boolean;
@@ -91,8 +92,7 @@ export function PermissionTemplateDialog({
   const fetchTemplates = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/permission-templates');
-      const data = await res.json();
+      const data = await apiRequest('/permission-templates');
 
       if (data.code === 0) {
         setTemplates(data.data || []);
@@ -109,8 +109,7 @@ export function PermissionTemplateDialog({
   // 获取所有权限（用于选择）
   const fetchAllPermissions = useCallback(async () => {
     try {
-      const res = await fetch('/api/permissions/all');
-      const data = await res.json();
+      const data = await apiRequest('/permissions/all');
       if (data.code === 0) {
         setAllPermissions(data.data || []);
       }
@@ -142,8 +141,7 @@ export function PermissionTemplateDialog({
   // 打开编辑表单
   const handleEditTemplate = async (template: PermissionTemplate) => {
     try {
-      const res = await fetch(`/api/permission-templates/${template.id}`);
-      const data = await res.json();
+      const data = await apiRequest(`/permission-templates/${template.id}`);
 
       if (data.code === 0) {
         setFormData({
@@ -164,8 +162,7 @@ export function PermissionTemplateDialog({
   // 预览模板
   const handlePreviewTemplate = async (template: PermissionTemplate) => {
     try {
-      const res = await fetch(`/api/permission-templates/${template.id}`);
-      const data = await res.json();
+      const data = await apiRequest(`/permission-templates/${template.id}`);
 
       if (data.code === 0) {
         setPreviewTemplate(data.data);
@@ -180,10 +177,9 @@ export function PermissionTemplateDialog({
   // 删除模板
   const handleDeleteTemplate = async (template: PermissionTemplate) => {
     try {
-      const res = await fetch(`/api/permission-templates/${template.id}`, {
+      const data = await apiRequest(`/permission-templates/${template.id}`, {
         method: 'DELETE'
       });
-      const data = await res.json();
 
       if (data.code === 0) {
         toast.success('模板删除成功');
@@ -210,18 +206,15 @@ export function PermissionTemplateDialog({
       setSubmitting(true);
 
       const url = editingTemplate
-        ? `/api/permission-templates/${editingTemplate.id}`
-        : '/api/permission-templates';
+        ? `/permission-templates/${editingTemplate.id}`
+        : '/permission-templates';
 
       const method = editingTemplate ? 'PUT' : 'POST';
 
-      const res = await fetch(url, {
+      const data = await apiRequest(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
-
-      const data = await res.json();
 
       if (data.code === 0) {
         toast.success(editingTemplate ? '模板更新成功' : '模板创建成功');

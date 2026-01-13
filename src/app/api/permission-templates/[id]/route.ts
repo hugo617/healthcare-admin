@@ -1,7 +1,12 @@
 import { db } from '@/db';
 import { permissionTemplates, templatePermissions } from '@/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
-import { successResponse, errorResponse } from '@/service/response';
+import {
+  successResponse,
+  errorResponse,
+  unauthorizedResponse
+} from '@/service/response';
+import { getCurrentUser } from '@/lib/auth';
 
 /**
  * GET /api/permission-templates/:id
@@ -12,6 +17,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = getCurrentUser(request);
+    if (!user) {
+      return unauthorizedResponse('未授权');
+    }
+
     const { id } = await params;
     const templateId = parseInt(id);
 
@@ -26,7 +36,8 @@ export async function GET(
       .where(
         and(
           eq(permissionTemplates.id, templateId),
-          eq(permissionTemplates.isDeleted, false)
+          eq(permissionTemplates.isDeleted, false),
+          eq(permissionTemplates.tenantId, user.tenantId)
         )
       )
       .limit(1);
@@ -62,6 +73,11 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = getCurrentUser(request);
+    if (!user) {
+      return unauthorizedResponse('未授权');
+    }
+
     const { id } = await params;
     const templateId = parseInt(id);
 
@@ -79,7 +95,8 @@ export async function PUT(
       .where(
         and(
           eq(permissionTemplates.id, templateId),
-          eq(permissionTemplates.isDeleted, false)
+          eq(permissionTemplates.isDeleted, false),
+          eq(permissionTemplates.tenantId, user.tenantId)
         )
       )
       .limit(1);
@@ -102,7 +119,8 @@ export async function PUT(
           description !== undefined
             ? description
             : existingTemplate.description,
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        updatedBy: user.id
       })
       .where(eq(permissionTemplates.id, templateId));
 
@@ -117,7 +135,8 @@ export async function PUT(
       if (permissionIds.length > 0) {
         const values = permissionIds.map((permissionId: number) => ({
           templateId,
-          permissionId
+          permissionId,
+          tenantId: user.tenantId
         }));
         await db.insert(templatePermissions).values(values);
       }
@@ -139,6 +158,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = getCurrentUser(request);
+    if (!user) {
+      return unauthorizedResponse('未授权');
+    }
+
     const { id } = await params;
     const templateId = parseInt(id);
 
@@ -153,7 +177,8 @@ export async function DELETE(
       .where(
         and(
           eq(permissionTemplates.id, templateId),
-          eq(permissionTemplates.isDeleted, false)
+          eq(permissionTemplates.isDeleted, false),
+          eq(permissionTemplates.tenantId, user.tenantId)
         )
       )
       .limit(1);
