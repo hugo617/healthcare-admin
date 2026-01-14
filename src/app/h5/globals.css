@@ -1,0 +1,115 @@
+/* Google Fonts - must be before other imports */
+@import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;500;600;700&family=Varela+Round&display=swap');
+
+@import 'tailwindcss';
+
+/* 健康主题 - 翡翠绿配色 */
+@theme inline {
+  --font-heading: 'Varela Round', sans-serif;
+  --font-body: 'Nunito Sans', sans-serif;
+  --font-sans: 'Nunito Sans', sans-serif;
+
+  /* 健康主题颜色 */
+  --color-primary: #10B981;
+  --color-secondary: #34D399;
+  --color-accent: #F59E0B;
+  --color-sage: #6EE7B7;
+  --color-sage-light: #A7F3D0;
+  --color-health-bg: #F0FDF4;
+  --color-health-text: #064E3B;
+  --color-lavender: #C8B6FF;
+  --color-cream: #F5F5F0;
+
+  /* 新拟态阴影 */
+  --shadow-neumorphic: 6px 6px 12px #D1D9E6, -6px -6px 12px #FFFFFF;
+  --shadow-neumorphic-inset: inset 4px 4px 8px #D1D9E6, inset -4px -4px 8px #FFFFFF;
+  --shadow-neumorphic-soft: 4px 4px 8px #D1D9E6, -4px -4px 8px #FFFFFF;
+  --shadow-neumorphic-hover: 8px 8px 16px #D1D9E6, -8px -8px 16px #FFFFFF;
+}
+
+/* 移动端适配 */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+input, button, textarea {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* 隐藏滚动条 */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* 安全区域适配 */
+.h-safe-bottom {
+  height: env(safe-area-inset-bottom);
+}
+
+/* 平滑滚动 */
+.overflow-x-auto {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 增强触摸体验 */
+@media (hover: none) {
+  .hover\:bg-gray-50:active {
+    background-color: rgb(249 250 251);
+  }
+
+  .hover\:bg-white\/30:active {
+    background-color: rgba(255, 255, 255, 0.3);
+  }
+}
+
+/* Toast 淡入动画 */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+/* 无障碍 - 减少动画 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* 滚动容器样式 */
+.scrollable-content {
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding-top: 80px;
+  padding-bottom: 100px;
+}
+
+/* 内容容器底部间距 */
+.content-container {
+  padding-bottom: 30px;
+}

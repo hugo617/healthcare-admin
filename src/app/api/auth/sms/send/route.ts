@@ -63,7 +63,7 @@ async function checkIpRateLimit(
     .orderBy(desc(verificationCodes.createdAt))
     .limit(1);
 
-  if (recentCodes.length > 0) {
+  if (recentCodes.length > 0 && recentCodes[0]?.createdAt) {
     // 验证时间戳合理性（排除异常时间）
     if (recentCodes[0].createdAt > now) {
       await logger.warn('短信验证码', '限流检查', '发现异常时间戳数据', {
@@ -153,7 +153,7 @@ async function checkPhoneRateLimit(
     .orderBy(desc(verificationCodes.createdAt))
     .limit(1);
 
-  if (recentCodes.length > 0) {
+  if (recentCodes.length > 0 && recentCodes[0]?.createdAt) {
     // 验证时间戳合理性（排除异常时间）
     if (recentCodes[0].createdAt > now) {
       await logger.warn('短信验证码', '手机号限流', '发现异常时间戳数据', {

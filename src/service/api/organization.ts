@@ -11,7 +11,7 @@ import type {
   AddUserToOrganizationData,
   PaginationInfo,
   ApiResponse
-} from '@/app/dashboard/account/organization/types';
+} from '@/app/admin/dashboard/account/organization/types';
 
 export const OrganizationAPI = {
   /**

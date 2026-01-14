@@ -75,7 +75,7 @@ export async function PUT(
       .where(eq(permissions.id, permissionId))
       .limit(1);
 
-    return successResponse(updated, '权限更新成功');
+    return successResponse({ ...updated, message: '权限更新成功' });
   } catch (error) {
     console.error('更新权限失败:', error);
     return errorResponse('更新权限失败');
@@ -117,7 +117,7 @@ export async function DELETE(
       })
       .where(eq(permissions.id, permissionId));
 
-    return successResponse(null, '权限删除成功');
+    return successResponse({ message: '权限删除成功' });
   } catch (error) {
     console.error('删除权限失败:', error);
     return errorResponse('删除权限失败');

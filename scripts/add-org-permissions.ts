@@ -1,12 +1,13 @@
 import { db } from "../src/db";
 import { permissions, roles, rolePermissions } from "../src/db/schema";
+import { eq } from "drizzle-orm";
 
 async function addOrganizationPermissions() {
   console.log('开始添加组织架构权限...');
 
   // 检查组织架构权限是否已存在
   const existingOrgPermission = await db.select().from(permissions).where(
-    (p) => p.code === 'account.organization'
+    eq(permissions.code, 'account.organization')
   );
 
   if (existingOrgPermission.length > 0) {
@@ -24,7 +25,7 @@ async function addOrganizationPermissions() {
   ];
 
   // 获取超级管理员角色
-  const superAdminRoles = await db.select().from(roles).where((r) => r.isSuper === true);
+  const superAdminRoles = await db.select().from(roles).where(eq(roles.isSuper, true));
 
   if (superAdminRoles.length === 0) {
     console.log('未找到超级管理员角色');

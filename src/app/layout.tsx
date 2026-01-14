@@ -1,5 +1,12 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono, Poppins, Open_Sans } from 'next/font/google';
+import {
+  Geist,
+  Geist_Mono,
+  Poppins,
+  Open_Sans,
+  Nunito_Sans,
+  Varela_Round
+} from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/sonner';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
@@ -32,6 +39,25 @@ const openSans = Open_Sans({
   weight: ['300', '400', '500', '600', '700']
 });
 
+// H5 应用字体
+const nunitoSans = Nunito_Sans({
+  variable: '--font-nunito-sans',
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  display: 'swap',
+  preload: true,
+  fallback: ['system-ui', 'arial', 'sans-serif']
+});
+
+const varelaRound = Varela_Round({
+  variable: '--font-varela-round',
+  subsets: ['latin'],
+  weight: ['400'],
+  display: 'swap',
+  preload: true,
+  fallback: ['system-ui', 'arial', 'sans-serif']
+});
+
 export const metadata: Metadata = {
   title: siteConfig.name,
   description: siteConfig.description
@@ -44,9 +70,9 @@ export default async function RootLayout({
 }>) {
   const session = await auth();
   return (
-    <html lang='en' suppressHydrationWarning>
+    <html lang='zh-CN' suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${poppins.variable} ${openSans.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${poppins.variable} ${openSans.variable} ${nunitoSans.variable} ${varelaRound.variable} antialiased`}
       >
         <NuqsAdapter>
           <Providers session={session}>

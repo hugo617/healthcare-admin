@@ -39,8 +39,8 @@ async function fixSmsCodes() {
     if (remainingCodes.length > 0) {
       console.log('清理后最新的10条记录:');
       for (const code of remainingCodes) {
-        const isFuture = code.createdAt > now;
-        console.log(`  ${isFuture ? '⚠️' : '✓'} Phone: ${code.phone}, createdAt: ${code.createdAt.toISOString()}`);
+        const isFuture = code.createdAt ? code.createdAt > now : false;
+        console.log(`  ${isFuture ? '⚠️' : '✓'} Phone: ${code.phone}, createdAt: ${code.createdAt ? code.createdAt.toISOString() : 'null'}`);
       }
     } else {
       console.log('ℹ️  所有验证码记录已清理完毕');

@@ -3,7 +3,6 @@ import { requirePermission } from '@/lib/permission-guard';
 import { PERMISSIONS } from '@/lib/permissions';
 import { db } from '@/db';
 import { tenants } from '@/db/schema';
-import { eq, isNull } from 'drizzle-orm';
 
 /**
  * 导出租户数据 API
@@ -29,20 +28,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 获取所有租户数据（排除已删除）
+    // 获取所有租户数据
     const allTenants = await db
       .select({
         id: tenants.id,
         name: tenants.name,
         code: tenants.code,
         status: tenants.status,
-        maxUsers: tenants.maxUsers,
-        enableAPIAccess: tenants.enableAPIAccess,
+        settings: tenants.settings,
         createdAt: tenants.createdAt,
         updatedAt: tenants.updatedAt
       })
-      .from(tenants)
-      .where(isNull(tenants.deletedAt));
+      .from(tenants);
 
     if (format === 'csv') {
       // 生成 CSV 内容
@@ -51,8 +48,7 @@ export async function POST(request: NextRequest) {
         '租户名称',
         '租户代码',
         '状态',
-        '最大用户数',
-        'API访问',
+        '配置',
         '创建时间',
         '更新时间'
       ];
@@ -65,8 +61,7 @@ export async function POST(request: NextRequest) {
           : t.status === 'inactive'
             ? '停用'
             : '暂停',
-        (t.maxUsers || 0).toString(),
-        t.enableAPIAccess ? '是' : '否',
+        JSON.stringify(t.settings || {}),
         t.createdAt ? new Date(t.createdAt).toLocaleString('zh-CN') : '',
         t.updatedAt ? new Date(t.updatedAt).toLocaleString('zh-CN') : ''
       ]);
@@ -98,8 +93,7 @@ export async function POST(request: NextRequest) {
         '租户名称',
         '租户代码',
         '状态',
-        '最大用户数',
-        'API访问',
+        '配置',
         '创建时间',
         '更新时间'
       ];
@@ -112,8 +106,7 @@ export async function POST(request: NextRequest) {
           : t.status === 'inactive'
             ? '停用'
             : '暂停',
-        (t.maxUsers || 0).toString(),
-        t.enableAPIAccess ? '是' : '否',
+        JSON.stringify(t.settings || {}),
         t.createdAt ? new Date(t.createdAt).toLocaleString('zh-CN') : '',
         t.updatedAt ? new Date(t.updatedAt).toLocaleString('zh-CN') : ''
       ]);

@@ -117,21 +117,23 @@ export async function PUT(
         {
           code: 400,
           message: '数据验证失败',
-          errors: validatedData.error.errors
+          errors: validatedData.error.issues
         },
         { status: 400 }
       );
     }
 
-    const [updatedRecord] = await db
+    const updateResult = await db
       .update(serviceRecords)
       .set({
-        ...validatedData.data,
+        ...(validatedData.data as any),
         updatedAt: new Date(),
         updatedBy: session.user.id
       })
       .where(eq(serviceRecords.id, recordId))
       .returning();
+
+    const updatedRecord = (updateResult as any[])?.[0];
 
     const serializedRecord = serializeServiceRecord(updatedRecord);
     return NextResponse.json({

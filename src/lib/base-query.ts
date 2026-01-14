@@ -1,5 +1,11 @@
 import { db } from '@/db';
-import { users, roles, permissions, rolePermissions, tenants } from '@/db/schema';
+import {
+  users,
+  roles,
+  permissions,
+  rolePermissions,
+  tenants
+} from '@/db/schema';
 import { eq, and, asc, desc, ilike, count, sql } from 'drizzle-orm';
 import { TenantContext } from '@/lib/tenant-context';
 import {
@@ -84,9 +90,9 @@ export class BaseQuery {
       case 'roles':
         return eq(roles.tenantId, tenantId);
       case 'permissions':
-        return eq(permissions.tenantId, tenantId);
+        return eq(permissions.tenantId, Number(tenantId));
       case 'role_permissions':
-        return eq(rolePermissions.tenantId, tenantId);
+        return eq(rolePermissions.tenantId, Number(tenantId));
       default:
         throw new Error(`Unknown table: ${tableName}`);
     }
@@ -145,10 +151,7 @@ export class BaseQuery {
     if (keyword && keyword.trim()) {
       const searchTerm = `%${keyword.trim()}%`;
       return query.where(
-        and(
-          this.buildTenantFilter('users'),
-          ilike(users.username, searchTerm)
-        )
+        and(this.buildTenantFilter('users'), ilike(users.username, searchTerm))
       );
     }
 
@@ -192,7 +195,7 @@ export class BaseQuery {
       pageSize,
       totalPages,
       hasNext: page < totalPages,
-      hasPrev: page > 1,
+      hasPrev: page > 1
     };
   }
 }
@@ -204,7 +207,9 @@ export class UserQuery extends BaseQuery {
   /**
    * 查找用户（支持分页和搜索）
    */
-  static async findUsers(options: BaseQueryOptions = {}): Promise<PaginatedResult<User>> {
+  static async findUsers(
+    options: BaseQueryOptions = {}
+  ): Promise<PaginatedResult<User>> {
     return this.withTenant(async (tenantId) => {
       let query = db.select().from(users);
 
@@ -242,7 +247,9 @@ export class UserQuery extends BaseQuery {
           .filter(Boolean);
 
         if (filterConditions.length > 0) {
-          query = query.where(and(eq(users.tenantId, tenantId), ...filterConditions));
+          query = query.where(
+            and(eq(users.tenantId, tenantId), ...filterConditions)
+          );
         }
       }
 
@@ -306,7 +313,10 @@ export class UserQuery extends BaseQuery {
   /**
    * 检查邮箱是否已存在
    */
-  static async isEmailExists(email: string, excludeId?: number): Promise<boolean> {
+  static async isEmailExists(
+    email: string,
+    excludeId?: number
+  ): Promise<boolean> {
     return this.withTenant(async (tenantId) => {
       let query = db
         .select({ id: users.id })
@@ -314,7 +324,13 @@ export class UserQuery extends BaseQuery {
         .where(and(eq(users.email, email), eq(users.tenantId, tenantId)));
 
       if (excludeId) {
-        query = query.where(and(eq(users.email, email), eq(users.tenantId, tenantId), sql`${users.id} != ${excludeId}`));
+        query = query.where(
+          and(
+            eq(users.email, email),
+            eq(users.tenantId, tenantId),
+            sql`${users.id} != ${excludeId}`
+          )
+        );
       }
 
       const result = await query.limit(1);
@@ -325,7 +341,10 @@ export class UserQuery extends BaseQuery {
   /**
    * 检查用户名是否已存在
    */
-  static async isUsernameExists(username: string, excludeId?: number): Promise<boolean> {
+  static async isUsernameExists(
+    username: string,
+    excludeId?: number
+  ): Promise<boolean> {
     return this.withTenant(async (tenantId) => {
       let query = db
         .select({ id: users.id })
@@ -333,7 +352,13 @@ export class UserQuery extends BaseQuery {
         .where(and(eq(users.username, username), eq(users.tenantId, tenantId)));
 
       if (excludeId) {
-        query = query.where(and(eq(users.username, username), eq(users.tenantId, tenantId), sql`${users.id} != ${excludeId}`));
+        query = query.where(
+          and(
+            eq(users.username, username),
+            eq(users.tenantId, tenantId),
+            sql`${users.id} != ${excludeId}`
+          )
+        );
       }
 
       const result = await query.limit(1);
@@ -363,7 +388,9 @@ export class RoleQuery extends BaseQuery {
   /**
    * 查找角色（支持分页和搜索）
    */
-  static async findRoles(options: BaseQueryOptions = {}): Promise<PaginatedResult<Role>> {
+  static async findRoles(
+    options: BaseQueryOptions = {}
+  ): Promise<PaginatedResult<Role>> {
     return this.withTenant(async (tenantId) => {
       let query = db.select().from(roles);
 
@@ -435,7 +462,9 @@ export class TenantQuery extends BaseQuery {
   /**
    * 查找所有租户（管理员功能）
    */
-  static async findAllTenants(options: BaseQueryOptions = {}): Promise<PaginatedResult<Tenant>> {
+  static async findAllTenants(
+    options: BaseQueryOptions = {}
+  ): Promise<PaginatedResult<Tenant>> {
     let query = db.select().from(tenants);
 
     // 应用搜索
@@ -460,7 +489,9 @@ export class TenantQuery extends BaseQuery {
     // 应用排序和分页
     const { sortBy = 'createdAt', sortOrder = 'desc' } = options;
     const orderFn = sortOrder === 'asc' ? asc : desc;
-    query = query.orderBy(orderFn(tenants[sortBy as keyof typeof tenants] || tenants.createdAt));
+    query = query.orderBy(
+      orderFn(tenants[sortBy as keyof typeof tenants] || tenants.createdAt)
+    );
     query = this.applyPagination(query, options);
 
     const data = await query;
@@ -496,7 +527,9 @@ export class TenantQuery extends BaseQuery {
   /**
    * 获取租户统计信息
    */
-  static async getTenantStatistics(tenantId: bigint): Promise<TenantStatistics | null> {
+  static async getTenantStatistics(
+    tenantId: bigint
+  ): Promise<TenantStatistics | null> {
     try {
       const result = await db.execute(sql`
         SELECT
@@ -528,7 +561,7 @@ export class TenantQuery extends BaseQuery {
           userCount: Number(result[0].userCount),
           roleCount: Number(result[0].roleCount),
           permissionCount: Number(result[0].permissionCount),
-          rolePermissionCount: Number(result[0].rolePermissionCount),
+          rolePermissionCount: Number(result[0].rolePermissionCount)
         };
       }
 

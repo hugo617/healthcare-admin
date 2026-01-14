@@ -42,7 +42,7 @@ export async function GET(request: Request) {
         // 查询顶级组织（没有父节点的组织）
         conditions.push(isNull(organizations.parentId));
       } else {
-        conditions.push(eq(organizations.parentId, BigInt(parentId)));
+        conditions.push(eq(organizations.parentId, parseInt(parentId)));
       }
     }
 
@@ -154,7 +154,7 @@ export async function POST(request: Request) {
     const existingOrg = await db
       .select()
       .from(organizations)
-      .where(eq(organizations.tenantId, BigInt(tenantId)))
+      .where(eq(organizations.tenantId, tenantId))
       .limit(100);
 
     const nameExists = existingOrg.some((org) => org.name === name);
@@ -167,7 +167,7 @@ export async function POST(request: Request) {
       const parentOrg = await db
         .select()
         .from(organizations)
-        .where(eq(organizations.id, BigInt(parentId)))
+        .where(eq(organizations.id, parseInt(parentId)))
         .limit(1);
 
       if (parentOrg.length === 0) {
@@ -181,24 +181,24 @@ export async function POST(request: Request) {
       const parentOrg = await db
         .select()
         .from(organizations)
-        .where(eq(organizations.id, BigInt(parentId)))
+        .where(eq(organizations.id, parseInt(parentId)))
         .limit(1);
 
       if (parentOrg.length > 0) {
         path = parentOrg[0].path
-          ? `${parentOrg[0].path}.${BigInt(parentId)}`
+          ? `${parentOrg[0].path}.${parseInt(parentId)}`
           : String(parentId);
       }
     }
 
     // 创建组织
-    const [newOrg] = await db
+    const result = await db
       .insert(organizations)
       .values({
-        tenantId: BigInt(tenantId),
+        tenantId,
         name,
         code: code || null,
-        parentId: parentId ? BigInt(parentId) : null,
+        parentId: parentId ? parseInt(parentId) : null,
         leaderId: leaderId || null,
         status,
         sortOrder,
@@ -208,20 +208,25 @@ export async function POST(request: Request) {
       })
       .returning();
 
+    const inserted = result as any[];
+    const newOrg = inserted[0];
+
     // 更新路径（包含新生成的ID）
-    if (newOrg.id) {
+    if (newOrg?.id) {
       const updatedPath = path ? `${path}.${newOrg.id}` : String(newOrg.id);
       await db
         .update(organizations)
         .set({ path: updatedPath })
         .where(eq(organizations.id, newOrg.id));
+
+      return successResponse({
+        id: String(newOrg.id),
+        name: newOrg.name,
+        message: '组织创建成功'
+      });
     }
 
-    return successResponse({
-      id: String(newOrg.id),
-      name: newOrg.name,
-      message: '组织创建成功'
-    });
+    return errorResponse('创建组织失败');
   } catch (error) {
     console.error('创建组织失败:', error);
     return errorResponse('创建组织失败');

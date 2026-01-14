@@ -7,7 +7,7 @@
 
 import { db } from '@/db';
 import { verificationCodes } from '@/db/schema';
-import { lt, sql } from 'drizzle-orm';
+import { lt, gt, sql } from 'drizzle-orm';
 import { config } from 'dotenv';
 
 config({ path: `.env.local` });
@@ -24,21 +24,21 @@ async function fixSmsCodes() {
       .select()
       .from(verificationCodes)
       .where(
-        lt(now, verificationCodes.createdAt)
+        gt(verificationCodes.createdAt, now)
       );
 
     if (futureCodes.length > 0) {
       console.log(`发现 ${futureCodes.length} 条时间异常的记录（createdAt 在未来）`);
 
       for (const code of futureCodes) {
-        console.log(`  - ID: ${code.id}, Phone: ${code.phone}, createdAt: ${code.createdAt.toISOString()}`);
+        console.log(`  - ID: ${code.id}, Phone: ${code.phone}, createdAt: ${code.createdAt?.toISOString() ?? 'null'}`);
       }
 
       // 删除这些异常数据
       const result = await db
         .delete(verificationCodes)
         .where(
-          lt(now, verificationCodes.createdAt)
+          gt(verificationCodes.createdAt, now)
         );
 
       console.log(`已删除 ${result.rowCount} 条异常记录\n`);
@@ -66,7 +66,7 @@ async function fixSmsCodes() {
     if (latestCodes.length > 0) {
       console.log('\n最新的5条验证码记录:');
       for (const code of latestCodes) {
-        console.log(`  - Phone: ${code.phone}, createdAt: ${code.createdAt.toISOString()}`);
+        console.log(`  - Phone: ${code.phone}, createdAt: ${code.createdAt?.toISOString() ?? 'null'}`);
       }
     }
 

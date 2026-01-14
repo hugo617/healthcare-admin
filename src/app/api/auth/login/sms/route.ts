@@ -150,7 +150,7 @@ export async function POST(request: Request) {
         })
         .returning();
 
-      user = newUser[0];
+      user = (newUser as any[])[0];
 
       await logger.info('短信验证码登录', '自动注册成功', '用户自动注册完成', {
         userId: user.id,

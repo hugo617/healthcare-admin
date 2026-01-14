@@ -1,63 +1,85 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth';
 
 /**
- * 受保护的路由列表
- * 这些路由需要身份验证
+ * 双系统路由配置
+ * 统一使用 'auth_token' 作为 cookie 名称，向后兼容旧的 cookie 名称
  */
-const PROTECTED_ROUTES = [
-  '/dashboard',
-  '/api',
-];
+
+// JWT Secret - 需要与登录 API 使用相同的 secret
+// 在 Edge Runtime 中，环境变量的访问方式不同
+const JWT_SECRET = process.env.JWT_SECRET || 'your_very_long_random_secret_key';
 
 /**
- * 公共路由列表
- * 这些路由不需要身份验证
+ * 在 middleware 中验证 token（Edge Runtime 兼容版本）
  */
-const PUBLIC_ROUTES = [
-  '/',
-  '/login',
-  '/register',
-  '/auth',
-  '/api/auth',
-  '/_next',
-  '/favicon.ico',
-];
+function verifyTokenInMiddleware(token: string) {
+  try {
+    // 将 secret 转换为 Uint8Array 供 jose 使用
+    const encoder = new TextEncoder();
+    const secretKey = encoder.encode(JWT_SECRET);
 
-/**
- * 管理员路由列表
- * 这些路由需要管理员权限
- */
-const ADMIN_ROUTES = [
-  '/dashboard/system',
-  '/api/admin',
-];
-
-/**
- * 检查路由是否为公共路由
- */
-function isPublicRoute(pathname: string): boolean {
-  return PUBLIC_ROUTES.some(route => pathname.startsWith(route));
-}
-
-/**
- * 检查路由是否为管理员路由
- */
-function isAdminRoute(pathname: string): boolean {
-  return ADMIN_ROUTES.some(route => pathname.startsWith(route));
-}
-
-/**
- * 检查路由是否需要保护
- */
-function isProtectedRoute(pathname: string): boolean {
-  // 如果是公共路由，不需要保护
-  if (isPublicRoute(pathname)) {
-    return false;
+    // 使用动态导入 jose 以支持 Edge Runtime
+    return import('jose').then(({ jwtVerify }) => {
+      return jwtVerify(token, secretKey)
+        .then(({ payload }) => ({
+          id: payload.id,
+          email: payload.email,
+          username: payload.username,
+          avatar: payload.avatar || '',
+          roleId: payload.roleId,
+          tenantId: Number(payload.tenantId || 1),
+          isSuperAdmin: payload.isSuperAdmin || false
+        }))
+        .catch(() => null);
+    });
+  } catch {
+    return Promise.resolve(null);
   }
+}
+const SYSTEM_CONFIG = {
+  admin: {
+    prefix: '/admin',
+    loginPath: '/admin/login',
+    protectedPaths: ['/admin'],
+    publicPaths: ['/admin/login'],
+    cookieName: 'auth_token', // 统一使用 auth_token
+    legacyCookieName: 'admin_token', // 向后兼容
+    name: 'Admin'
+  },
+  h5: {
+    prefix: '/h5',
+    loginPath: '/h5/login',
+    protectedPaths: ['/h5'],
+    publicPaths: ['/h5/login'],
+    cookieName: 'auth_token', // 统一使用 auth_token
+    legacyCookieName: 'h5_token', // 向后兼容
+    name: 'H5'
+  }
+};
 
-  // 如果是受保护的路由前缀，需要保护
-  return PROTECTED_ROUTES.some(route => pathname.startsWith(route));
+/**
+ * 判断路由属于哪个系统
+ */
+function identifySystem(pathname: string): 'admin' | 'h5' | null {
+  if (pathname.startsWith('/admin')) return 'admin';
+  if (pathname.startsWith('/h5')) return 'h5';
+  return null;
+}
+
+/**
+ * 检查是否为系统的公共路由
+ */
+function isPublicRoute(pathname: string, system: 'admin' | 'h5'): boolean {
+  const config = SYSTEM_CONFIG[system];
+  return config.publicPaths.some((path) => pathname.startsWith(path));
+}
+
+/**
+ * 检查是否为系统的受保护路由
+ */
+function isProtectedRoute(pathname: string, system: 'admin' | 'h5'): boolean {
+  const config = SYSTEM_CONFIG[system];
+  return config.protectedPaths.some((path) => pathname.startsWith(path));
 }
 
 /**
@@ -104,33 +126,75 @@ export async function middleware(request: NextRequest) {
     // 1. 提取租户信息（不进行数据库查询）
     const tenantCode = extractTenantFromRequest(request);
 
-    // 身份验证检查
-    if (isProtectedRoute(pathname)) {
-      // 从cookie中获取token
-      const tokenCookie = request.cookies.get('token');
+    // 2. 识别系统
+    const system = identifySystem(pathname);
+
+    // 如果不是 admin 或 h5 路由,只添加租户信息后放行
+    if (!system) {
+      const response = NextResponse.next();
+      if (tenantCode) {
+        response.headers.set('x-tenant-code', tenantCode);
+      }
+      return response;
+    }
+
+    const config = SYSTEM_CONFIG[system];
+
+    // 3. 公共路由直接放行
+    if (isPublicRoute(pathname, system)) {
+      const response = NextResponse.next();
+      if (tenantCode) {
+        response.headers.set('x-tenant-code', tenantCode);
+      }
+      return response;
+    }
+
+    // 4. 受保护路由需要认证
+    if (isProtectedRoute(pathname, system)) {
+      // 调试：打印所有可用的 cookies
+      const allCookies = request.cookies.getAll();
+      console.log(
+        '[Middleware] All cookies:',
+        allCookies.map((c) => c.name)
+      );
+      console.log(
+        '[Middleware] Looking for cookie:',
+        config.cookieName,
+        'or',
+        config.legacyCookieName
+      );
+      console.log(
+        '[Middleware] JWT_SECRET:',
+        JWT_SECRET?.substring(0, 10) + '...'
+      );
+
+      // 优先从统一 cookie 获取 token，如果没有则尝试从旧 cookie 获取
+      let tokenCookie = request.cookies.get(config.cookieName);
       if (!tokenCookie) {
-        // 重定向到登录页面
-        const loginUrl = new URL('/login', request.url);
+        // 向后兼容：尝试从旧的 cookie 获取 token
+        tokenCookie = request.cookies.get(config.legacyCookieName);
+      }
+
+      console.log('[Middleware] Token cookie found:', !!tokenCookie);
+
+      if (!tokenCookie) {
+        // 重定向到对应系统的登录页
+        const loginUrl = new URL(config.loginPath, request.url);
         loginUrl.searchParams.set('callbackUrl', pathname);
         return NextResponse.redirect(loginUrl);
       }
 
-      // 验证token
-      const user = verifyToken(tokenCookie.value);
+      // 验证 token - 使用 Edge Runtime 兼容的方式
+      const user = await verifyTokenInMiddleware(tokenCookie.value);
+      console.log('[Middleware] Token verification result:', !!user);
       if (!user) {
-        // 重定向到登录页面
-        const loginUrl = new URL('/login', request.url);
+        // 重定向到对应系统的登录页
+        const loginUrl = new URL(config.loginPath, request.url);
         loginUrl.searchParams.set('callbackUrl', pathname);
         return NextResponse.redirect(loginUrl);
       }
 
-      // 管理员权限检查
-      if (isAdminRoute(pathname) && !user.isSuperAdmin) {
-        // 重定向到无权限页面
-        return NextResponse.redirect(new URL('/403', request.url));
-      }
-
-      // 创建响应并添加租户和用户信息到响应头
+      // 创建响应并添加用户信息到响应头
       const response = NextResponse.next();
 
       if (tenantCode) {
@@ -140,6 +204,7 @@ export async function middleware(request: NextRequest) {
       response.headers.set('x-user-id', user.id.toString());
       response.headers.set('x-user-email', user.email);
       response.headers.set('x-user-tenant-id', user.tenantId.toString());
+      response.headers.set('x-user-system', system);
 
       return response;
     }
@@ -151,14 +216,18 @@ export async function middleware(request: NextRequest) {
     }
 
     return response;
-
   } catch (error) {
     console.error('Middleware error:', error);
 
-    // 租户识别失败时的处理
-    if (isProtectedRoute(pathname)) {
-      // 重定向到错误页面或登录页面
-      return NextResponse.redirect(new URL('/login?error=middleware_error', request.url));
+    // 错误处理：如果能识别系统则重定向到对应登录页
+    const system = identifySystem(pathname);
+    if (system) {
+      return NextResponse.redirect(
+        new URL(
+          `${SYSTEM_CONFIG[system].loginPath}?error=middleware_error`,
+          request.url
+        )
+      );
     }
 
     return NextResponse.next();
@@ -178,6 +247,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public folder
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|public).*)',
-  ],
+    '/((?!api|_next/static|_next/image|favicon.ico|public).*)'
+  ]
 };

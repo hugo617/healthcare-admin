@@ -10,10 +10,7 @@ export async function GET(request: Request) {
     console.log('Authorization header:', authHeader);
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: '缺少认证头' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: '缺少认证头' }, { status: 401 });
     }
 
     const token = authHeader.substring(7);
@@ -25,14 +22,11 @@ export async function GET(request: Request) {
     console.log('Verified user:', user);
 
     if (!user) {
-      return NextResponse.json(
-        { error: '无效token' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: '无效token' }, { status: 401 });
     }
 
     // 3. 设置租户上下文
-    await TenantContext.setCurrentTenant(user.tenantId);
+    await TenantContext.setCurrentTenant(BigInt(user.tenantId));
 
     // 4. 获取当前租户信息
     const currentTenant = TenantContext.getCurrentTenant();
@@ -45,15 +39,17 @@ export async function GET(request: Request) {
         username: user.username,
         roleId: user.roleId,
         tenantId: user.tenantId.toString(),
-        isSuperAdmin: user.isSuperAdmin,
+        isSuperAdmin: user.isSuperAdmin
       },
-      tenant: currentTenant ? {
-        id: currentTenant.id.toString(),
-        name: currentTenant.name,
-        code: currentTenant.code,
-        status: currentTenant.status,
-      } : null,
-      message: '认证成功',
+      tenant: currentTenant
+        ? {
+            id: currentTenant.id.toString(),
+            name: currentTenant.name,
+            code: currentTenant.code,
+            status: currentTenant.status
+          }
+        : null,
+      message: '认证成功'
     });
   } catch (error) {
     console.error('Test auth error:', error);

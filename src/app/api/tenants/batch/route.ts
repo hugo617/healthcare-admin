@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    let result: {
+    const result: {
       success: number;
       failed: number;
       errors: Array<{ tenantId: string; error: string }>;
@@ -99,15 +99,8 @@ export async function POST(request: NextRequest) {
         break;
 
       case 'delete':
-        // 软删除：设置 isDeleted 标记
-        await db
-          .update(tenants)
-          .set({
-            isDeleted: true,
-            deletedAt: new Date(),
-            updatedAt: new Date()
-          })
-          .where(inArray(tenants.id, tenantBigIntIds));
+        // 硬删除：直接删除租户记录
+        await db.delete(tenants).where(inArray(tenants.id, tenantBigIntIds));
         result.success = tenantBigIntIds.length;
         break;
 

@@ -13,7 +13,7 @@ export async function GET(
 ) {
   try {
     const { id: idStr } = await params;
-    const id = BigInt(idStr);
+    const id = parseInt(idStr);
 
     // 获取组织基本信息
     const orgList = await db
@@ -60,7 +60,7 @@ export async function PUT(
 
   try {
     const { id: idStr } = await params;
-    const id = BigInt(idStr);
+    const id = parseInt(idStr);
     const body = await request.json();
     const { name, code, parentId, leaderId, status, sortOrder } = body;
 
@@ -93,7 +93,7 @@ export async function PUT(
         const parentOrg = await db
           .select()
           .from(organizations)
-          .where(eq(organizations.id, BigInt(checkParentId)))
+          .where(eq(organizations.id, parseInt(checkParentId)))
           .limit(1);
 
         if (parentOrg.length === 0 || !parentOrg[0].parentId) {
@@ -112,7 +112,7 @@ export async function PUT(
       const parentOrg = await db
         .select()
         .from(organizations)
-        .where(eq(organizations.id, BigInt(parentId)))
+        .where(eq(organizations.id, parseInt(parentId)))
         .limit(1);
 
       if (parentOrg.length === 0) {
@@ -126,7 +126,7 @@ export async function PUT(
       const parentOrg = await db
         .select()
         .from(organizations)
-        .where(eq(organizations.id, BigInt(parentId)))
+        .where(eq(organizations.id, parseInt(parentId)))
         .limit(1);
 
       if (parentOrg.length > 0) {
@@ -147,7 +147,7 @@ export async function PUT(
     if (name !== undefined) updateData.name = name;
     if (code !== undefined) updateData.code = code;
     if (parentId !== undefined)
-      updateData.parentId = parentId ? BigInt(parentId) : null;
+      updateData.parentId = parentId ? parseInt(parentId) : null;
     if (leaderId !== undefined) updateData.leaderId = leaderId || null;
     if (status !== undefined) updateData.status = status;
     if (sortOrder !== undefined) updateData.sortOrder = sortOrder;
@@ -177,7 +177,7 @@ export async function DELETE(
 
   try {
     const { id: idStr } = await params;
-    const id = BigInt(idStr);
+    const id = parseInt(idStr);
 
     // 检查组织是否存在
     const existingOrg = await db

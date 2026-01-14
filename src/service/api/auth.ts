@@ -3,7 +3,7 @@ import { apiRequest } from './base';
 // 认证相关 API
 export class AuthAPI {
   // 用户登录
-  static async login(credentials: { email: string; password: string }) {
+  static async login(credentials: { account: string; password: string }) {
     return apiRequest('/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials)

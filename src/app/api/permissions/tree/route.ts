@@ -72,14 +72,14 @@ async function buildPermissionTree(
       type: perm.type as 'menu' | 'page' | 'button' | 'api' | 'data',
       description: perm.description,
       parentId: perm.parentId,
-      sortOrder: perm.sortOrder,
+      sortOrder: perm.sortOrder || 0,
       isSystem: perm.isSystem || false,
       frontPath: perm.frontPath,
       apiPath: perm.apiPath,
       method: perm.method,
       status: perm.status || 'active',
       roleUsageCount: Number(perm.roleUsageCount) || 0,
-      createdAt: perm.createdAt,
+      createdAt: perm.createdAt || new Date(),
       updatedAt: perm.updatedAt,
       children: []
     };
@@ -112,7 +112,7 @@ export async function GET(request: Request) {
 
     const total = countNodes(tree);
 
-    return successResponse(tree, { total });
+    return successResponse({ tree, total });
   } catch (error) {
     console.error('获取权限树失败:', error);
     return errorResponse('获取权限树失败');

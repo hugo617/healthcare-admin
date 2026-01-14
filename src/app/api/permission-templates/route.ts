@@ -36,7 +36,7 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(permissionTemplates.isDeleted, false),
-          eq(permissionTemplates.tenantId, user.tenantId)
+          eq(permissionTemplates.tenantId, Number(user.tenantId))
         )
       )
       .orderBy(
@@ -116,19 +116,17 @@ export async function POST(request: Request) {
       const values = permissionIds.map((permissionId: number) => ({
         templateId: newTemplate.id,
         permissionId,
-        tenantId: user.tenantId
+        tenantId: Number(user.tenantId)
       }));
 
       await db.insert(templatePermissions).values(values);
     }
 
-    return successResponse(
-      {
-        ...newTemplate,
-        permissionCount: permissionIds?.length || 0
-      },
-      '权限模板创建成功'
-    );
+    return successResponse({
+      ...newTemplate,
+      permissionCount: permissionIds?.length || 0,
+      message: '权限模板创建成功'
+    });
   } catch (error) {
     console.error('创建权限模板失败:', error);
     return errorResponse('创建权限模板失败');

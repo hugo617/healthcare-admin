@@ -37,7 +37,7 @@ export async function GET(
         and(
           eq(permissionTemplates.id, templateId),
           eq(permissionTemplates.isDeleted, false),
-          eq(permissionTemplates.tenantId, user.tenantId)
+          eq(permissionTemplates.tenantId, Number(user.tenantId))
         )
       )
       .limit(1);
@@ -96,7 +96,7 @@ export async function PUT(
         and(
           eq(permissionTemplates.id, templateId),
           eq(permissionTemplates.isDeleted, false),
-          eq(permissionTemplates.tenantId, user.tenantId)
+          eq(permissionTemplates.tenantId, Number(user.tenantId))
         )
       )
       .limit(1);
@@ -142,7 +142,7 @@ export async function PUT(
       }
     }
 
-    return successResponse(null, '权限模板更新成功');
+    return successResponse({ message: '权限模板更新成功' });
   } catch (error) {
     console.error('更新权限模板失败:', error);
     return errorResponse('更新权限模板失败');
@@ -178,7 +178,7 @@ export async function DELETE(
         and(
           eq(permissionTemplates.id, templateId),
           eq(permissionTemplates.isDeleted, false),
-          eq(permissionTemplates.tenantId, user.tenantId)
+          eq(permissionTemplates.tenantId, Number(user.tenantId))
         )
       )
       .limit(1);
@@ -201,7 +201,7 @@ export async function DELETE(
       })
       .where(eq(permissionTemplates.id, templateId));
 
-    return successResponse(null, '权限模板删除成功');
+    return successResponse({ message: '权限模板删除成功' });
   } catch (error) {
     console.error('删除权限模板失败:', error);
     return errorResponse('删除权限模板失败');

@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
         {
           code: 400,
           message: '查询参数验证失败',
-          errors: validatedQuery.error.errors
+          errors: validatedQuery.error.issues
         },
         { status: 400 }
       );
@@ -140,12 +140,12 @@ export async function POST(request: NextRequest) {
     const validatedData = createServiceRecordSchema.safeParse(body);
 
     if (!validatedData.success) {
-      console.error('Zod验证错误详情:', validatedData.error.errors);
+      console.error('Zod验证错误详情:', validatedData.error.issues);
       return NextResponse.json(
         {
           code: 400,
           message: '数据验证失败',
-          errors: validatedData.error.errors
+          errors: validatedData.error.issues
         },
         { status: 400 }
       );

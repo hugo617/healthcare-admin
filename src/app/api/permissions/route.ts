@@ -149,7 +149,7 @@ export async function POST(request: Request) {
       })
       .returning();
 
-    return successResponse(newPermission, '权限创建成功');
+    return successResponse({ ...newPermission, message: '权限创建成功' });
   } catch (error) {
     console.error('创建权限失败:', error);
     return errorResponse('创建权限失败');

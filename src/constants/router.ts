@@ -16,7 +16,7 @@ import {
 export const businessNavList: NavItem[] = [
   {
     title: '工作台',
-    url: '/dashboard/overview',
+    url: '/admin/dashboard/overview',
     icon: SquareTerminal,
     isActive: false,
     description: '工作台',
@@ -40,7 +40,7 @@ export const systemNavList: NavItem[] = [
     items: [
       {
         title: '用户管理',
-        url: '/dashboard/account/user',
+        url: '/admin/dashboard/account/user',
         description: '用户管理',
         icon: Users,
         searchConfig: {
@@ -52,7 +52,7 @@ export const systemNavList: NavItem[] = [
       },
       {
         title: '角色管理',
-        url: '/dashboard/account/role',
+        url: '/admin/dashboard/account/role',
         description: '角色管理',
         icon: Shield,
         searchConfig: {
@@ -64,7 +64,7 @@ export const systemNavList: NavItem[] = [
       },
       {
         title: '权限管理',
-        url: '/dashboard/account/permission',
+        url: '/admin/dashboard/account/permission',
         description: '权限管理',
         icon: Key,
         searchConfig: {
@@ -76,7 +76,7 @@ export const systemNavList: NavItem[] = [
       },
       {
         title: '租户管理',
-        url: '/dashboard/account/tenant',
+        url: '/admin/dashboard/account/tenant',
         description: '租户管理',
         icon: Building,
         searchConfig: {
@@ -88,7 +88,7 @@ export const systemNavList: NavItem[] = [
       },
       {
         title: '组织架构',
-        url: '/dashboard/account/organization',
+        url: '/admin/dashboard/account/organization',
         description: '组织架构管理',
         icon: Building2,
         searchConfig: {
@@ -108,7 +108,7 @@ export const systemNavList: NavItem[] = [
     items: [
       {
         title: '日志管理',
-        url: '/dashboard/system/logs',
+        url: '/admin/dashboard/system/logs',
         icon: ScrollText,
         description: '系统日志审计',
         searchConfig: {

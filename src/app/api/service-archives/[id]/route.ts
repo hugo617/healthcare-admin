@@ -3,7 +3,11 @@ import { db } from '@/db';
 import { serviceArchives } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { updateServiceArchiveSchema } from '@/lib/validators/service-archive';
-import { successResponse, errorResponse, notFoundResponse } from '@/service/response';
+import {
+  successResponse,
+  errorResponse,
+  notFoundResponse
+} from '@/service/response';
 import { auth } from '@/lib/auth';
 import { serializeServiceArchive } from '@/lib/utils/serialize';
 
@@ -19,7 +23,10 @@ export async function GET(
     // 1. 获取认证用户
     const session = await auth();
     if (!session?.user) {
-      return NextResponse.json({ code: 401, message: '未授权' }, { status: 401 });
+      return NextResponse.json(
+        { code: 401, message: '未授权' },
+        { status: 401 }
+      );
     }
 
     // 2. 获取档案ID
@@ -33,7 +40,7 @@ export async function GET(
       .where(
         and(
           eq(serviceArchives.id, archiveId),
-          eq(serviceArchives.userId, session.user.id),  // 权限检查
+          eq(serviceArchives.userId, session.user.id), // 权限检查
           eq(serviceArchives.isDeleted, false)
         )
       )
@@ -48,7 +55,6 @@ export async function GET(
 
     // 5. 返回结果
     return successResponse(serializedArchive);
-
   } catch (error: any) {
     console.error('获取服务档案详情失败:', error);
     return errorResponse(error.message || '查询失败');
@@ -67,7 +73,10 @@ export async function PUT(
     // 1. 获取认证用户
     const session = await auth();
     if (!session?.user) {
-      return NextResponse.json({ code: 401, message: '未授权' }, { status: 401 });
+      return NextResponse.json(
+        { code: 401, message: '未授权' },
+        { status: 401 }
+      );
     }
 
     // 2. 获取档案ID
@@ -98,11 +107,12 @@ export async function PUT(
     const validatedData = updateServiceArchiveSchema.parse(body);
 
     // 6. 更新档案
-    const [updatedArchive] = await db.update(serviceArchives)
+    const [updatedArchive] = await db
+      .update(serviceArchives)
       .set({
         ...validatedData,
         updatedAt: new Date(),
-        updatedBy: session.user.id,
+        updatedBy: session.user.id
       })
       .where(eq(serviceArchives.id, archiveId))
       .returning();
@@ -111,15 +121,17 @@ export async function PUT(
     const serializedArchive = serializeServiceArchive(updatedArchive);
 
     // 8. 返回结果
-    return successResponse(serializedArchive, '更新成功');
-
+    return successResponse({ ...serializedArchive, message: '更新成功' });
   } catch (error: any) {
     if (error.name === 'ZodError') {
-      return NextResponse.json({
-        code: 400,
-        message: '数据验证失败',
-        errors: error.errors
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          code: 400,
+          message: '数据验证失败',
+          errors: error.errors
+        },
+        { status: 400 }
+      );
     }
 
     console.error('更新服务档案失败:', error);
@@ -139,7 +151,10 @@ export async function DELETE(
     // 1. 获取认证用户
     const session = await auth();
     if (!session?.user) {
-      return NextResponse.json({ code: 401, message: '未授权' }, { status: 401 });
+      return NextResponse.json(
+        { code: 401, message: '未授权' },
+        { status: 401 }
+      );
     }
 
     // 2. 获取档案ID
@@ -164,19 +179,19 @@ export async function DELETE(
     }
 
     // 4. 软删除档案
-    await db.update(serviceArchives)
+    await db
+      .update(serviceArchives)
       .set({
         isDeleted: true,
         deletedAt: new Date(),
         status: 'deleted',
         updatedAt: new Date(),
-        updatedBy: session.user.id,
+        updatedBy: session.user.id
       })
       .where(eq(serviceArchives.id, archiveId));
 
     // 5. 返回结果
-    return successResponse(null, '删除成功');
-
+    return successResponse({ message: '删除成功' });
   } catch (error: any) {
     console.error('删除服务档案失败:', error);
     return errorResponse(error.message || '删除失败');

@@ -12,7 +12,7 @@ export async function GET(
 ) {
   try {
     const { id: idStr } = await params;
-    const id = BigInt(idStr);
+    const id = parseInt(idStr);
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
@@ -86,7 +86,7 @@ export async function POST(
 
   try {
     const { id: idStr } = await params;
-    const id = BigInt(idStr);
+    const id = parseInt(idStr);
     const body = await request.json();
     const { userId, position, isMain = false } = body;
 
@@ -189,7 +189,7 @@ export async function DELETE(
 
   try {
     const { id: idStr } = await params;
-    const id = BigInt(idStr);
+    const id = parseInt(idStr);
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
 

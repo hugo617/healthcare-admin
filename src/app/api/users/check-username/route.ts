@@ -1,6 +1,6 @@
 import { db } from '@/db';
 import { users } from '@/db/schema';
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and, isNull, ne, sql } from 'drizzle-orm';
 import { getCurrentUser } from '@/lib/auth';
 import { successResponse, errorResponse } from '@/service/response';
 
