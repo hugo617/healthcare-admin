@@ -157,8 +157,8 @@ export default function ServicePage() {
 
         {/* 即将到来的预约 */}
         {upcomingAppointments.length > 0 && (
-          <NeumorphicCard>
-            <h2 className='mb-4 text-lg font-semibold text-gray-800'>
+          <NeumorphicCard className='p-5'>
+            <h2 className='mb-4 text-base font-semibold text-gray-800'>
               即将到来的预约
             </h2>
             <AppointmentList
@@ -170,8 +170,8 @@ export default function ServicePage() {
 
         {/* 历史预约 */}
         {pastAppointments.length > 0 && (
-          <NeumorphicCard>
-            <h2 className='mb-4 text-lg font-semibold text-gray-800'>
+          <NeumorphicCard className='p-5'>
+            <h2 className='mb-4 text-base font-semibold text-gray-800'>
               历史预约
             </h2>
             <AppointmentList
@@ -188,7 +188,7 @@ export default function ServicePage() {
             <p className='text-gray-600'>加载中...</p>
           </div>
         ) : appointments.length === 0 ? (
-          <NeumorphicCard>
+          <NeumorphicCard className='p-5'>
             <div className='py-8 text-center text-gray-500'>
               <Calendar className='mx-auto mb-4 h-16 w-16 text-gray-400' />
               <p className='mb-2 text-lg font-medium'>暂无预约记录</p>

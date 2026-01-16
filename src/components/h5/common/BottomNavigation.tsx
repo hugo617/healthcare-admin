@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
+import { useRef, useEffect } from 'react';
 
 interface NavItem {
   id: string;
@@ -8,10 +9,16 @@ interface NavItem {
   path: string;
   iconActive: React.ReactNode;
   iconInactive: React.ReactNode;
+  badge?: number | boolean;
 }
 
-// 保持 /h5 路由前缀，与 3003 端口的 H5 应用一致
-const NAV_ITEMS: NavItem[] = [
+interface BottomNavigationProps {
+  items?: NavItem[];
+  badgeConfig?: Record<string, number | boolean>;
+}
+
+// 默认导航项
+const DEFAULT_NAV_ITEMS: NavItem[] = [
   {
     id: 'home',
     label: '首页',
@@ -34,7 +41,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'health',
-    label: '健康数据',
+    label: '健康',
     path: '/h5/health',
     iconActive: (
       <svg fill='none' stroke='currentColor' viewBox='0 0 24 24'>
@@ -59,7 +66,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'service',
-    label: '服务预约',
+    label: '服务',
     path: '/h5/service',
     iconActive: (
       <svg fill='none' stroke='currentColor' viewBox='0 0 24 24'>
@@ -109,40 +116,99 @@ const NAV_ITEMS: NavItem[] = [
   }
 ];
 
-export function BottomNavigation() {
+export function BottomNavigation({
+  items: customItems,
+  badgeConfig
+}: BottomNavigationProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const indicatorRef = useRef<HTMLDivElement>(null);
+
+  // 合并徽章配置
+  const items =
+    customItems ||
+    DEFAULT_NAV_ITEMS.map((item) => ({
+      ...item,
+      badge: badgeConfig?.[item.id]
+    }));
+
+  // 计算活动指示器位置
+  const activeIndex = items.findIndex((item) => pathname === item.path);
+
+  // 触觉反馈
+  const handleNavClick = (path: string) => {
+    // 触觉反馈（支持的设备）
+    if ('vibrate' in navigator) {
+      navigator.vibrate(10);
+    }
+    router.push(path);
+  };
 
   return (
-    <nav className='shadow-neumorphic fixed right-0 bottom-0 left-0 z-20 rounded-t-3xl bg-white/90 backdrop-blur-md'>
-      <div className='flex items-center justify-around px-2 py-3'>
-        {NAV_ITEMS.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => router.push(item.path)}
-            className='group flex cursor-pointer flex-col items-center gap-1 px-4 py-2'
-          >
-            <div
-              className={`flex h-6 w-6 items-center justify-center transition-colors ${
-                pathname === item.path
-                  ? 'text-primary'
-                  : 'group-hover:text-primary text-slate-400'
-              }`}
+    <nav className='shadow-elevation-lg fixed right-0 bottom-0 left-0 z-20 rounded-t-3xl border-t border-neutral-100/50 bg-white/90 backdrop-blur-md'>
+      <div className='pb-safe flex items-center justify-around px-2 py-2'>
+        {items.map((item, index) => {
+          const isActive = pathname === item.path;
+          const badgeCount =
+            typeof item.badge === 'number' ? item.badge : item.badge ? 1 : 0;
+
+          return (
+            <button
+              key={item.id}
+              onClick={() => handleNavClick(item.path)}
+              className='group duration-base relative flex flex-1 cursor-pointer flex-col items-center gap-1 px-4 py-2 transition-all active:scale-95'
+              aria-label={item.label}
+              aria-current={isActive ? 'page' : undefined}
             >
-              {pathname === item.path ? item.iconActive : item.iconInactive}
-            </div>
-            <span
-              className={`text-xs transition-colors ${
-                pathname === item.path
-                  ? 'text-primary font-medium'
-                  : 'group-hover:text-primary text-slate-400'
-              }`}
-            >
-              {item.label}
-            </span>
-          </button>
-        ))}
+              {/* 活动指示器 */}
+              {isActive && (
+                <div className='bg-primary-500 animate-scale-in absolute -top-0.5 h-1 w-8 rounded-full' />
+              )}
+
+              {/* 图标容器 */}
+              <div className='relative'>
+                <div
+                  className={`duration-base flex h-6 w-6 items-center justify-center transition-all ${
+                    isActive
+                      ? 'text-primary-500 scale-110'
+                      : 'group-hover:text-primary-500 text-neutral-400'
+                  }`}
+                >
+                  {isActive ? item.iconActive : item.iconInactive}
+                </div>
+
+                {/* 徽章 */}
+                {badgeCount > 0 && (
+                  <span
+                    className={`animate-scale-in absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white ${
+                      badgeCount > 9 ? 'w-auto px-1' : ''
+                    } ${isActive ? 'bg-error' : 'bg-error'}`}
+                  >
+                    {badgeCount > 9 ? '9+' : badgeCount}
+                  </span>
+                )}
+              </div>
+
+              {/* 标签 */}
+              <span
+                className={`duration-base text-xs transition-all ${
+                  isActive
+                    ? 'text-primary-500 font-semibold'
+                    : 'group-hover:text-primary-500 text-neutral-400'
+                }`}
+              >
+                {item.label}
+              </span>
+            </button>
+          );
+        })}
       </div>
+
+      {/* 安全区域适配 */}
+      <div
+        className='h-safe-bottom'
+        style={{ height: 'env(safe-area-inset-bottom, 0px)' }}
+      />
     </nav>
   );
 }

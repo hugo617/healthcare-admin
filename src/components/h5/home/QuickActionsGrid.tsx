@@ -43,7 +43,8 @@ export function QuickActionsGrid() {
     {
       id: 'profile',
       label: '个人资料',
-      gradient: 'from-primary to-secondary',
+      path: '/h5/profile',
+      gradient: 'from-primary-500 to-secondary',
       icon: (
         <svg
           className='h-7 w-7 text-white'
@@ -63,6 +64,7 @@ export function QuickActionsGrid() {
     {
       id: 'blood-pressure',
       label: '血压测量',
+      path: '/h5/health',
       gradient: 'from-rose-400 to-pink-400',
       icon: (
         <svg
@@ -75,7 +77,7 @@ export function QuickActionsGrid() {
             strokeLinecap='round'
             strokeLinejoin='round'
             strokeWidth='2'
-            d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'
+            d='M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z'
           />
         </svg>
       )
@@ -84,7 +86,7 @@ export function QuickActionsGrid() {
       id: 'health-archive',
       label: '健康档案',
       path: '/h5/service-archive',
-      gradient: 'from-accent to-purple-400',
+      gradient: 'from-accent to-orange-400',
       icon: (
         <svg
           className='h-7 w-7 text-white'
@@ -96,7 +98,7 @@ export function QuickActionsGrid() {
             strokeLinecap='round'
             strokeLinejoin='round'
             strokeWidth='2'
-            d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'
+            d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
           />
         </svg>
       )
@@ -117,7 +119,7 @@ export function QuickActionsGrid() {
             strokeLinecap='round'
             strokeLinejoin='round'
             strokeWidth='2'
-            d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
+            d='M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01'
           />
         </svg>
       )
@@ -125,7 +127,7 @@ export function QuickActionsGrid() {
     {
       id: 'customer-service',
       label: '在线客服',
-      gradient: 'from-amber-400 to-orange-400',
+      gradient: 'from-violet-400 to-purple-400',
       icon: (
         <svg
           className='h-7 w-7 text-white'
@@ -145,7 +147,7 @@ export function QuickActionsGrid() {
   ];
 
   return (
-    <div className='shadow-neumorphic mx-4 mb-4 rounded-3xl bg-white p-5'>
+    <div className='shadow-neumorphic-soft mx-4 mb-4 rounded-3xl bg-white p-5'>
       <h3 className='font-heading mb-4 text-base text-slate-800'>快捷功能</h3>
       <div className='grid grid-cols-3 gap-4'>
         {quickActions.map((action) => (
@@ -155,7 +157,7 @@ export function QuickActionsGrid() {
             className='group flex cursor-pointer flex-col items-center gap-2'
           >
             <div
-              className={`h-14 w-14 rounded-2xl bg-gradient-to-br ${action.gradient} shadow-neumorphic-soft group-hover:shadow-neumorphic-hover flex items-center justify-center transition-all duration-300 group-hover:scale-110`}
+              className={`h-14 w-14 rounded-2xl bg-gradient-to-br ${action.gradient} shadow-elevation-sm group-hover:shadow-elevation-md duration-base flex items-center justify-center transition-all group-hover:scale-110 active:scale-95`}
             >
               {action.icon}
             </div>

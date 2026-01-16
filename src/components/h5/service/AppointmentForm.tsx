@@ -101,26 +101,28 @@ export function AppointmentForm({ onClose, onSuccess }: AppointmentFormProps) {
   };
 
   return (
-    <div className='fixed inset-0 z-50 flex items-end justify-center bg-black/50'>
-      <div className='max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white p-6'>
+    <div className='animate-fade-in fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm'>
+      <div className='shadow-elevation-xl animate-slide-up max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white'>
         {/* 标题栏 */}
-        <div className='mb-6 flex items-center justify-between'>
-          <h2 className='text-xl font-bold text-gray-800'>创建服务预约</h2>
-          <button
-            onClick={onClose}
-            className='rounded-full p-2 hover:bg-gray-100'
-          >
-            <X className='h-5 w-5 text-gray-500' />
-          </button>
+        <div className='sticky top-0 z-10 border-b border-neutral-100 bg-white px-6 py-4'>
+          <div className='flex items-center justify-between'>
+            <h2 className='text-xl font-bold text-gray-800'>创建服务预约</h2>
+            <button
+              onClick={onClose}
+              className='rounded-full p-2 text-neutral-500 transition-all hover:bg-neutral-100 active:scale-95'
+            >
+              <X className='h-5 w-5' />
+            </button>
+          </div>
         </div>
 
         {/* 表单 */}
-        <form onSubmit={handleSubmit} className='space-y-4'>
+        <form onSubmit={handleSubmit} className='space-y-5 p-6'>
           {/* 选择日期 */}
           <div>
             <label className='mb-2 block text-sm font-medium text-gray-700'>
-              <Calendar className='mr-1 inline h-4 w-4' />
-              选择日期 <span className='text-red-500'>*</span>
+              <Calendar className='text-primary-500 mr-1 inline h-4 w-4' />
+              选择日期 <span className='text-error'>*</span>
             </label>
             <div className='grid grid-cols-2 gap-2'>
               {availableDates.map((date) => (
@@ -128,10 +130,10 @@ export function AppointmentForm({ onClose, onSuccess }: AppointmentFormProps) {
                   key={date.value}
                   type='button'
                   onClick={() => setSelectedDate(date.value)}
-                  className={`rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
+                  className={`shadow-elevation-xs rounded-xl px-4 py-3 text-sm font-medium transition-all ${
                     selectedDate === date.value
-                      ? 'bg-gradient-to-r from-green-500 to-blue-500 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'from-primary-500 to-sage shadow-elevation-sm bg-gradient-to-r text-white'
+                      : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 active:scale-95'
                   }`}
                 >
                   {date.label}
@@ -143,8 +145,8 @@ export function AppointmentForm({ onClose, onSuccess }: AppointmentFormProps) {
           {/* 选择时间 */}
           <div>
             <label className='mb-2 block text-sm font-medium text-gray-700'>
-              <Clock className='mr-1 inline h-4 w-4' />
-              选择时间 <span className='text-red-500'>*</span>
+              <Clock className='text-primary-500 mr-1 inline h-4 w-4' />
+              选择时间 <span className='text-error'>*</span>
             </label>
             <div className='grid grid-cols-3 gap-2'>
               {TIME_SLOTS.map((time) => (
@@ -152,10 +154,10 @@ export function AppointmentForm({ onClose, onSuccess }: AppointmentFormProps) {
                   key={time}
                   type='button'
                   onClick={() => setSelectedTime(time)}
-                  className={`rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                  className={`shadow-elevation-xs rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                     selectedTime === time
-                      ? 'bg-gradient-to-r from-green-500 to-blue-500 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'from-primary-500 to-sage shadow-elevation-sm bg-gradient-to-r text-white'
+                      : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 active:scale-95'
                   }`}
                 >
                   {time}
@@ -167,7 +169,7 @@ export function AppointmentForm({ onClose, onSuccess }: AppointmentFormProps) {
           {/* 服务类型 */}
           <div>
             <label className='mb-2 block text-sm font-medium text-gray-700'>
-              服务类型 <span className='text-red-500'>*</span>
+              服务类型 <span className='text-error'>*</span>
             </label>
             <div className='space-y-2'>
               {SERVICE_TYPES.map((type) => (
@@ -175,10 +177,10 @@ export function AppointmentForm({ onClose, onSuccess }: AppointmentFormProps) {
                   key={type.value}
                   type='button'
                   onClick={() => setSelectedService(type.value)}
-                  className={`w-full rounded-xl px-4 py-3 text-left font-medium transition-colors ${
+                  className={`shadow-elevation-xs w-full rounded-xl px-4 py-3 text-left font-medium transition-all ${
                     selectedService === type.value
-                      ? 'bg-gradient-to-r from-green-500 to-blue-500 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'from-primary-500 to-sage shadow-elevation-sm bg-gradient-to-r text-white'
+                      : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 active:scale-95'
                   }`}
                 >
                   {type.label}
@@ -189,7 +191,7 @@ export function AppointmentForm({ onClose, onSuccess }: AppointmentFormProps) {
 
           {/* 备注 */}
           <div>
-            <label className='mb-1 block text-sm font-medium text-gray-700'>
+            <label className='mb-2 block text-sm font-medium text-gray-700'>
               备注
             </label>
             <textarea
@@ -197,7 +199,7 @@ export function AppointmentForm({ onClose, onSuccess }: AppointmentFormProps) {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              className='w-full resize-none rounded-xl border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-green-500'
+              className='focus:border-primary-500 focus:ring-primary-500/20 w-full resize-none rounded-xl border border-neutral-300 px-4 py-3 transition-all outline-none focus:ring-2'
             />
           </div>
 
@@ -207,7 +209,7 @@ export function AppointmentForm({ onClose, onSuccess }: AppointmentFormProps) {
             disabled={
               submitting || !selectedDate || !selectedTime || !selectedService
             }
-            className='w-full rounded-xl bg-gradient-to-r from-green-500 to-blue-500 py-3 font-medium text-white disabled:opacity-50'
+            className='from-primary-500 to-sage shadow-elevation-sm hover:shadow-elevation-md w-full rounded-xl bg-gradient-to-r py-3.5 font-medium text-white transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-50'
           >
             {submitting ? '提交中...' : '确认预约'}
           </button>

@@ -26,12 +26,12 @@ export function DailyReminderCard() {
   };
 
   return (
-    <div className='shadow-neumorphic mx-4 mb-4 rounded-3xl bg-white p-5'>
+    <div className='from-primary-50 to-sage-light/20 shadow-neumorphic-soft border-primary-100/30 mx-4 mb-4 rounded-3xl border bg-gradient-to-br p-5'>
       <div className='mb-3 flex items-center justify-between'>
         <div className='flex items-center gap-3'>
           <div className='relative'>
             <div className='bg-accent/20 absolute inset-0 animate-ping rounded-full'></div>
-            <div className='from-accent shadow-neumorphic-soft relative flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br to-purple-400'>
+            <div className='from-accent shadow-elevation-sm relative flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br to-orange-400'>
               <svg
                 className='h-5 w-5 text-white'
                 fill='none'
@@ -56,13 +56,13 @@ export function DailyReminderCard() {
         </div>
         <button
           onClick={handleLaterClick}
-          className='text-primary hover:text-accent cursor-pointer text-xs transition-colors'
+          className='text-primary hover:text-accent cursor-pointer text-xs font-medium transition-colors active:scale-95'
         >
           稍后提醒
         </button>
       </div>
       <p
-        className='cursor-pointer text-sm leading-relaxed text-slate-600 transition-colors hover:text-slate-800'
+        className='active:text-primary-600 cursor-pointer text-sm leading-relaxed text-slate-600 transition-colors hover:text-slate-800'
         onClick={handleReminderClick}
       >
         {reminder.content}

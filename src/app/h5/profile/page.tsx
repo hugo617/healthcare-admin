@@ -22,8 +22,7 @@ interface UserProfile {
 
 export default function ProfilePage() {
   const authManager = H5AuthManager.getInstance();
-  const { isAuthenticated } = authManager.getAuthState();
-  const { user } = authManager.getAuthState();
+  const { isAuthenticated, user } = authManager.getAuthState();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,9 +36,19 @@ export default function ProfilePage() {
 
     if (user) {
       setProfile(user as UserProfile);
+
+      // 初始化深色模式设置
+      const userMetadata = (user as any).metadata || {};
+      if (userMetadata.darkMode) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+
       setLoading(false);
     }
-  }, [isAuthenticated, user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, user?.id]);
 
   const handleEditProfile = () => {
     setShowEditForm(true);
@@ -52,6 +61,10 @@ export default function ProfilePage() {
   const handleFormSuccess = (updatedProfile: Partial<UserProfile>) => {
     setProfile((prev) => ({ ...prev, ...updatedProfile }) as UserProfile);
     setShowEditForm(false);
+  };
+
+  const handleAvatarChange = (newAvatar: string) => {
+    setProfile((prev) => (prev ? { ...prev, avatar: newAvatar } : null));
   };
 
   const handleLogout = () => {
@@ -89,11 +102,12 @@ export default function ProfilePage() {
         <ProfileHeader
           profile={(profile || user) as UserProfile | null}
           onEdit={handleEditProfile}
+          onAvatarChange={handleAvatarChange}
         />
 
-        <NeumorphicCard>
+        <NeumorphicCard className='p-5'>
           <div className='mb-4 flex items-center justify-between'>
-            <h3 className='text-lg font-semibold text-gray-800'>个人信息</h3>
+            <h3 className='text-base font-semibold text-gray-800'>个人信息</h3>
             <button
               onClick={handleEditProfile}
               className='text-sm text-purple-600'

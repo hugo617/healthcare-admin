@@ -55,9 +55,9 @@ export function HealthChart({ records }: HealthChartProps) {
     .join(' ');
 
   return (
-    <NeumorphicCard>
+    <NeumorphicCard className='p-5'>
       <div className='mb-4 flex items-center justify-between'>
-        <h3 className='text-lg font-semibold text-gray-800'>健康趋势</h3>
+        <h3 className='text-base font-semibold text-gray-800'>健康趋势</h3>
         <div className='flex items-center text-sm text-gray-500'>
           <TrendingUp className='mr-1 h-4 w-4' />近 7 天心率
         </div>
@@ -81,8 +81,10 @@ export function HealthChart({ records }: HealthChartProps) {
               {/* 折线 */}
               <polyline
                 fill='none'
-                stroke='#8b5cf6'
-                strokeWidth='2'
+                stroke='url(#chartGradient)'
+                strokeWidth='2.5'
+                strokeLinecap='round'
+                strokeLinejoin='round'
                 points={points}
               />
               {/* 数据点 */}
@@ -100,19 +102,34 @@ export function HealthChart({ records }: HealthChartProps) {
                     key={i}
                     cx={x}
                     cy={y}
-                    r='4'
-                    fill='#8b5cf6'
-                    className='hover:r-6 transition-all'
+                    r='5'
+                    fill='white'
+                    stroke='#10b981'
+                    strokeWidth='2.5'
+                    className='hover:r-7 cursor-pointer transition-all'
                   />
                 );
               })}
+              {/* 渐变定义 */}
+              <defs>
+                <linearGradient
+                  id='chartGradient'
+                  x1='0%'
+                  y1='0%'
+                  x2='100%'
+                  y2='0%'
+                >
+                  <stop offset='0%' stopColor='#10b981' />
+                  <stop offset='100%' stopColor='#6ee7b7' />
+                </linearGradient>
+              </defs>
             </svg>
           </div>
 
           {/* X 轴标签 */}
           <div className='flex justify-between px-2'>
             {chartData.map((d, i) => (
-              <div key={i} className='text-xs text-gray-500'>
+              <div key={i} className='text-xs text-neutral-500'>
                 {d.date}
               </div>
             ))}
@@ -123,10 +140,10 @@ export function HealthChart({ records }: HealthChartProps) {
             {chartData.map((d, i) => (
               <div
                 key={i}
-                className='flex-shrink-0 rounded-xl bg-purple-50 px-3 py-2 text-center'
+                className='from-primary-50 to-sage-light border-primary-100/50 flex-shrink-0 rounded-xl border bg-gradient-to-br px-3 py-2.5 text-center'
               >
-                <p className='text-lg font-bold text-purple-600'>{d.value}</p>
-                <p className='text-xs text-gray-500'>bpm</p>
+                <p className='text-primary-600 text-2xl font-bold'>{d.value}</p>
+                <p className='text-xs text-neutral-500'>bpm</p>
               </div>
             ))}
           </div>

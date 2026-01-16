@@ -142,9 +142,9 @@ export default function HealthPage() {
         {records.length > 0 && <HealthChart records={records} />}
 
         {/* 健康记录列表 */}
-        <NeumorphicCard>
+        <NeumorphicCard className='p-5'>
           <div className='mb-4 flex items-center justify-between'>
-            <h2 className='text-lg font-semibold text-gray-800'>健康记录</h2>
+            <h2 className='text-base font-semibold text-gray-800'>健康记录</h2>
             <div className='flex items-center text-sm text-gray-500'>
               <Activity className='mr-1 h-4 w-4' />
               {records.length} 条记录

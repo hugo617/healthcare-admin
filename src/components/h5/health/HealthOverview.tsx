@@ -92,8 +92,8 @@ export function HealthOverview({ records }: HealthOverviewProps) {
   ];
 
   return (
-    <NeumorphicCard>
-      <h3 className='mb-4 text-lg font-semibold text-gray-800'>健康概览</h3>
+    <NeumorphicCard className='p-5'>
+      <h3 className='mb-4 text-base font-semibold text-gray-800'>健康概览</h3>
       <div className='grid grid-cols-2 gap-3'>
         {stats.map((stat, index) => (
           <div
@@ -103,7 +103,7 @@ export function HealthOverview({ records }: HealthOverviewProps) {
             <div className='flex-shrink-0'>{stat.icon}</div>
             <div className='min-w-0 flex-1'>
               <p className='text-xs text-gray-600'>{stat.title}</p>
-              <p className='truncate text-lg font-bold text-gray-800'>
+              <p className='truncate text-2xl font-bold text-gray-800'>
                 {stat.value}
               </p>
               <p className='text-xs text-gray-500'>{stat.unit}</p>
