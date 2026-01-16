@@ -66,7 +66,8 @@ export default function LoginPage() {
     try {
       const response = await authAPI.login(
         passwordForm.account,
-        passwordForm.password
+        passwordForm.password,
+        rememberMe // 传递记住我参数
       );
 
       console.log('H5登录响应:', response);
@@ -258,9 +259,9 @@ export default function LoginPage() {
 
             {/* 错误提示 */}
             {error && (
-              <div className='mb-5 flex items-center gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-600'>
+              <div className='animate-fade-in mb-5 flex items-center gap-2 rounded-xl border-2 border-red-200 bg-red-50 p-3.5 text-sm text-red-600'>
                 <svg
-                  className='h-4 w-4 flex-shrink-0'
+                  className='h-5 w-5 flex-shrink-0'
                   fill='none'
                   stroke='currentColor'
                   viewBox='0 0 24 24'
@@ -272,7 +273,7 @@ export default function LoginPage() {
                     d='M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
                   />
                 </svg>
-                {error}
+                <span className='font-medium'>{error}</span>
               </div>
             )}
 
@@ -284,8 +285,8 @@ export default function LoginPage() {
                   <label className='mb-2.5 block text-sm font-medium text-slate-700'>
                     账号
                   </label>
-                  <div className='relative'>
-                    <span className='absolute top-1/2 left-4 -translate-y-1/2 text-slate-400'>
+                  <div className='group relative'>
+                    <span className='group-focus-within:text-primary absolute top-1/2 left-4 -translate-y-1/2 text-slate-400 transition-colors'>
                       <svg
                         className='h-5 w-5'
                         fill='none'
@@ -311,7 +312,7 @@ export default function LoginPage() {
                         if (error) setError('');
                       }}
                       placeholder='请输入用户名/手机号/邮箱'
-                      className='bg-neumorphic-light shadow-neumorphic-inset focus:ring-primary/30 w-full rounded-xl py-3.5 pr-4 pl-12 text-slate-700 placeholder-slate-400 transition-all duration-300 focus:ring-2 focus:outline-none'
+                      className='focus:border-primary focus:ring-primary/10 w-full rounded-xl border-2 border-slate-200 bg-white py-3.5 pr-4 pl-12 text-slate-700 placeholder-slate-400 transition-all duration-300 outline-none focus:ring-4'
                     />
                   </div>
                 </div>
@@ -321,8 +322,8 @@ export default function LoginPage() {
                   <label className='mb-2.5 block text-sm font-medium text-slate-700'>
                     密码
                   </label>
-                  <div className='relative'>
-                    <span className='absolute top-1/2 left-4 -translate-y-1/2 text-slate-400'>
+                  <div className='group relative'>
+                    <span className='group-focus-within:text-primary absolute top-1/2 left-4 -translate-y-1/2 text-slate-400 transition-colors'>
                       <svg
                         className='h-5 w-5'
                         fill='none'
@@ -348,12 +349,12 @@ export default function LoginPage() {
                         if (error) setError('');
                       }}
                       placeholder='请输入密码'
-                      className='bg-neumorphic-light shadow-neumorphic-inset focus:ring-primary/30 w-full rounded-xl py-3.5 pr-12 pl-12 text-slate-700 placeholder-slate-400 transition-all duration-300 focus:ring-2 focus:outline-none'
+                      className='focus:border-primary focus:ring-primary/10 w-full rounded-xl border-2 border-slate-200 bg-white py-3.5 pr-12 pl-12 text-slate-700 placeholder-slate-400 transition-all duration-300 outline-none focus:ring-4'
                     />
                     <button
                       type='button'
                       onClick={() => setShowPassword(!showPassword)}
-                      className='absolute top-1/2 right-4 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-600'
+                      className='absolute top-1/2 right-4 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-600 active:scale-90'
                     >
                       {showPassword ? (
                         <svg
@@ -402,10 +403,10 @@ export default function LoginPage() {
                         type='checkbox'
                         checked={rememberMe}
                         onChange={(e) => setRememberMe(e.target.checked)}
-                        className='text-primary focus:ring-primary/30 peer h-5 w-5 cursor-pointer rounded border-2 border-slate-300 transition-all duration-200 focus:ring-offset-0'
+                        className='peer checked:bg-primary checked:border-primary focus:ring-primary/30 h-5 w-5 cursor-pointer rounded border-2 border-slate-300 bg-white transition-all duration-200 focus:ring-2 focus:ring-offset-0'
                       />
                       <svg
-                        className='pointer-events-none absolute top-1 left-1 h-3 w-3 text-white opacity-0 transition-opacity peer-checked:opacity-100'
+                        className='pointer-events-none absolute top-0.5 left-0.5 h-4 w-4 text-white opacity-0 transition-opacity peer-checked:opacity-100'
                         fill='none'
                         stroke='currentColor'
                         viewBox='0 0 24 24'
@@ -419,7 +420,7 @@ export default function LoginPage() {
                       </svg>
                     </div>
                     <span className='text-sm text-slate-600 transition-colors group-hover:text-slate-700'>
-                      记住我
+                      记住我（30天免登录）
                     </span>
                   </label>
                 </div>
@@ -470,8 +471,8 @@ export default function LoginPage() {
                   <label className='mb-2.5 block text-sm font-medium text-slate-700'>
                     手机号
                   </label>
-                  <div className='relative'>
-                    <span className='absolute top-1/2 left-4 -translate-y-1/2 text-slate-400'>
+                  <div className='group relative'>
+                    <span className='group-focus-within:text-primary absolute top-1/2 left-4 -translate-y-1/2 text-slate-400 transition-colors'>
                       <svg
                         className='h-5 w-5'
                         fill='none'
@@ -497,7 +498,7 @@ export default function LoginPage() {
                         if (error) setError('');
                       }}
                       placeholder='请输入手机号'
-                      className='bg-neumorphic-light shadow-neumorphic-inset focus:ring-primary/30 w-full rounded-xl py-3.5 pr-4 pl-12 text-slate-700 placeholder-slate-400 transition-all duration-300 focus:ring-2 focus:outline-none'
+                      className='focus:border-primary focus:ring-primary/10 w-full rounded-xl border-2 border-slate-200 bg-white py-3.5 pr-4 pl-12 text-slate-700 placeholder-slate-400 transition-all duration-300 outline-none focus:ring-4'
                     />
                   </div>
                 </div>
@@ -508,8 +509,8 @@ export default function LoginPage() {
                     验证码
                   </label>
                   <div className='flex gap-3'>
-                    <div className='relative flex-1'>
-                      <span className='absolute top-1/2 left-4 -translate-y-1/2 text-slate-400'>
+                    <div className='group relative flex-1'>
+                      <span className='group-focus-within:text-primary absolute top-1/2 left-4 -translate-y-1/2 text-slate-400 transition-colors'>
                         <svg
                           className='h-5 w-5'
                           fill='none'
@@ -536,17 +537,15 @@ export default function LoginPage() {
                         }}
                         placeholder='请输入验证码'
                         maxLength={6}
-                        className='bg-neumorphic-light shadow-neumorphic-inset focus:ring-primary/30 w-full rounded-xl py-3.5 pr-4 pl-12 text-slate-700 placeholder-slate-400 transition-all duration-300 focus:ring-2 focus:outline-none'
+                        className='focus:border-primary focus:ring-primary/10 w-full rounded-xl border-2 border-slate-200 bg-white py-3.5 pr-4 pl-12 text-slate-700 placeholder-slate-400 transition-all duration-300 outline-none focus:ring-4'
                       />
                     </div>
                     <button
                       type='button'
                       onClick={handleSendCode}
                       disabled={countdown > 0 || sendingCode}
-                      className={`from-primary to-sage rounded-xl bg-gradient-to-r px-5 py-3.5 text-sm font-medium whitespace-nowrap text-white shadow-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98] ${
-                        countdown > 0 || sendingCode
-                          ? 'scale-100 cursor-not-allowed opacity-60'
-                          : ''
+                      className={`from-primary to-sage rounded-xl bg-gradient-to-r px-5 py-3.5 text-sm font-medium whitespace-nowrap text-white shadow-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98] disabled:scale-100 disabled:cursor-not-allowed disabled:opacity-60 ${
+                        countdown > 0 || sendingCode ? 'opacity-60' : ''
                       }`}
                     >
                       {sendingCode

@@ -1,16 +1,15 @@
 'use client';
 
 import React, { useRef } from 'react';
-import { User, Camera } from 'lucide-react';
+import { Camera } from 'lucide-react';
 import { toast } from 'sonner';
-import Image from 'next/image';
 
 interface UserProfile {
   id: number;
   username: string;
-  email?: string;
   phone?: string;
-  realName?: string;
+  email?: string;
+  nickname?: string;
   avatar?: string;
 }
 
@@ -92,7 +91,7 @@ export function ProfileHeader({
   };
 
   return (
-    <div className='from-primary-50 to-sage-light/30 shadow-neumorphic-soft border-primary-100/50 mb-6 rounded-3xl border bg-gradient-to-br p-5'>
+    <div className='shadow-neumorphic-soft overflow-hidden rounded-3xl bg-white p-5'>
       <div className='flex items-center gap-4'>
         {/* 头像 */}
         <div className='relative flex-shrink-0' onClick={handleAvatarClick}>
@@ -101,17 +100,21 @@ export function ProfileHeader({
               <img
                 src={profile.avatar}
                 alt='头像'
-                className={`shadow-elevation-sm h-20 w-20 rounded-full border-4 border-white object-cover ${uploading ? 'opacity-50' : ''}`}
+                className={`h-20 w-20 rounded-full object-cover ring-4 ring-teal-50 ${uploading ? 'opacity-50' : ''}`}
               />
-              <div className='bg-primary-500 absolute right-0 bottom-0 rounded-full p-1.5 shadow-lg'>
-                <Camera className='h-3 w-3 text-white' />
+              <div className='absolute right-0 bottom-0 rounded-full border-2 border-white bg-teal-600 p-1.5 shadow-lg'>
+                <Camera className='h-3.5 w-3.5 text-white' />
               </div>
             </>
           ) : (
-            <div className='from-primary-500 to-sage shadow-elevation-md relative flex h-20 w-20 cursor-pointer items-center justify-center rounded-full bg-gradient-to-br'>
-              <User className='h-10 w-10 text-white' />
-              <div className='absolute right-0 bottom-0 rounded-full bg-white p-1.5 shadow-lg'>
-                <Camera className='text-primary-500 h-3 w-3' />
+            <div className='from-primary to-sage relative flex h-20 w-20 cursor-pointer items-center justify-center rounded-full bg-gradient-to-br shadow-lg ring-4 ring-teal-50'>
+              <span className='text-2xl font-semibold text-white'>
+                {profile?.nickname?.charAt(0) ||
+                  profile?.username?.charAt(0) ||
+                  '?'}
+              </span>
+              <div className='absolute right-0 bottom-0 rounded-full border-2 border-white bg-teal-600 p-1.5 shadow-lg'>
+                <Camera className='h-3.5 w-3.5 text-white' />
               </div>
             </div>
           )}
@@ -124,19 +127,21 @@ export function ProfileHeader({
 
         {/* 用户信息 */}
         <div className='flex-1'>
-          <h2 className='mb-1 text-2xl font-bold text-gray-800'>
-            {profile?.realName || profile?.username || '用户'}
+          <h2 className='text-xl font-bold text-gray-800'>
+            {profile?.nickname || profile?.username || '未设置昵称'}
           </h2>
-          <p className='mb-2 text-sm text-gray-500'>
-            {profile?.email || profile?.phone || '未设置联系方式'}
+          <p className='mt-1 text-sm text-gray-500'>
+            {profile?.phone || profile?.email || '未设置联系方式'}
           </p>
-          <button
-            onClick={onEdit}
-            className='from-primary-500 to-sage shadow-elevation-sm hover:shadow-elevation-md rounded-full bg-gradient-to-r px-4 py-1.5 text-sm text-white transition-all active:scale-95'
-          >
-            编辑资料
-          </button>
         </div>
+
+        {/* 编辑按钮 */}
+        <button
+          onClick={onEdit}
+          className='from-primary to-sage rounded-2xl bg-gradient-to-r px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl active:scale-95'
+        >
+          编辑
+        </button>
       </div>
 
       {/* 隐藏的文件输入 */}

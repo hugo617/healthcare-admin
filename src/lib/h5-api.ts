@@ -40,7 +40,11 @@ apiClient.interceptors.response.use(
 
 export const authAPI = {
   // 账号密码登录（支持用户名/手机号/邮箱）- H5 专用
-  login: async (account: string, password: string) => {
+  login: async (
+    account: string,
+    password: string,
+    rememberMe: boolean = false
+  ) => {
     try {
       const response = await fetch(`/api/auth/login`, {
         method: 'POST',
@@ -49,7 +53,8 @@ export const authAPI = {
           account,
           password,
           loginType: 'password',
-          clientType: 'h5' // 指定客户端类型为 H5
+          clientType: 'h5', // 指定客户端类型为 H5
+          rememberMe // 传递记住我参数
         }),
         credentials: 'include'
       });

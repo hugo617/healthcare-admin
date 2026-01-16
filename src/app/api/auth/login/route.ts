@@ -90,7 +90,8 @@ export async function POST(request: Request) {
       phone, // 短信登录的手机号
       code, // 短信验证码
       loginType = 'password', // 'password' | 'sms'
-      clientType = 'admin' // 'admin' | 'h5'
+      clientType = 'admin', // 'admin' | 'h5'
+      rememberMe = false // 是否记住登录（延长token有效期）
     }: {
       account?: string;
       email?: string;
@@ -99,6 +100,7 @@ export async function POST(request: Request) {
       code?: string;
       loginType?: 'password' | 'sms';
       clientType?: ClientType;
+      rememberMe?: boolean;
     } = body;
 
     // 验证 clientType
@@ -407,8 +409,11 @@ export async function POST(request: Request) {
       isSuperAdmin: user[0].isSuperAdmin || false
     };
 
-    // 生成 JWT token
-    const token = generateToken(userInfo);
+    // 生成 JWT token（根据 rememberMe 决定过期时间）
+    const token = generateToken(userInfo, rememberMe);
+
+    // 计算过期时间（秒）
+    const maxAge = rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 24; // 30天 或 24小时
 
     // 获取请求信息用于创建 session
     const ipAddress = getClientIp(request);
@@ -457,7 +462,8 @@ export async function POST(request: Request) {
         clientType,
         sessionId: session?.id,
         loginTime: new Date().toISOString(),
-        tokenExpiry: '24小时'
+        tokenExpiry: rememberMe ? '30天' : '24小时',
+        rememberMe
       },
       user[0].id
     );
@@ -492,7 +498,7 @@ export async function POST(request: Request) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60 * 24
+      maxAge
     });
 
     // 向后兼容：同时设置旧 cookie（过渡期使用）
@@ -502,7 +508,7 @@ export async function POST(request: Request) {
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         path: '/',
-        maxAge: 60 * 60 * 24
+        maxAge
       });
     } else if (clientType === 'h5') {
       response.cookies.set('h5_token', token, {
@@ -510,14 +516,14 @@ export async function POST(request: Request) {
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         path: '/',
-        maxAge: 60 * 60 * 24
+        maxAge
       });
       response.cookies.set('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         path: '/',
-        maxAge: 60 * 60 * 24
+        maxAge
       });
     }
 

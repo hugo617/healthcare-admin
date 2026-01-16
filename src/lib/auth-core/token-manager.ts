@@ -13,12 +13,19 @@ import type { TokenPayload, AuthUser } from './types';
  * JWT 配置
  */
 const JWT_SECRET = process.env.JWT_SECRET || 'secret';
-const JWT_EXPIRES_IN = '24h'; // 24小时
+const JWT_EXPIRES_IN = '24h'; // 24小时（默认）
+const JWT_EXPIRES_IN_REMEMBER = '30d'; // 30天（记住我）
 
 /**
  * 生成 JWT Token
+ *
+ * @param user 用户信息
+ * @param rememberMe 是否记住登录（延长过期时间到30天）
  */
-export function generateToken(user: AuthUser): string {
+export function generateToken(
+  user: AuthUser,
+  rememberMe: boolean = false
+): string {
   const payload: TokenPayload = {
     id: user.id,
     email: user.email,
@@ -30,7 +37,8 @@ export function generateToken(user: AuthUser): string {
     isSuperAdmin: user.isSuperAdmin
   };
 
-  return sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+  const expiresIn = rememberMe ? JWT_EXPIRES_IN_REMEMBER : JWT_EXPIRES_IN;
+  return sign(payload, JWT_SECRET, { expiresIn });
 }
 
 /**

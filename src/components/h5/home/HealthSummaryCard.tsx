@@ -15,58 +15,12 @@ interface HealthMetric {
 
 export function HealthSummaryCard() {
   // 模拟数据
-  const steps = 6820;
-  const stepsGoal = 10000;
-  const stepsProgress = Math.round((steps / stepsGoal) * 100);
+  const therapyCount = 12;
 
   const metrics: HealthMetric[] = [
     {
-      value: steps.toLocaleString(),
-      label: '今日步数',
-      progress: stepsProgress,
-      icon: (
-        <svg
-          className='h-5 w-5 text-white'
-          fill='none'
-          stroke='currentColor'
-          viewBox='0 0 24 24'
-        >
-          <path
-            strokeLinecap='round'
-            strokeLinejoin='round'
-            strokeWidth='2'
-            d='M13 10V3L4 14h7v7l9-11h-7z'
-          />
-        </svg>
-      ),
-      gradient: 'from-primary to-secondary',
-      trend: { value: '+12%', isUp: true }
-    },
-    {
-      value: '72',
-      label: '心率',
-      unit: 'bpm',
-      icon: (
-        <svg
-          className='h-5 w-5 text-white'
-          fill='none'
-          stroke='currentColor'
-          viewBox='0 0 24 24'
-        >
-          <path
-            strokeLinecap='round'
-            strokeLinejoin='round'
-            strokeWidth='2'
-            d='M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z'
-          />
-        </svg>
-      ),
-      gradient: 'from-rose-400 to-pink-500',
-      trend: { value: '-3%', isUp: false }
-    },
-    {
       value: '120/80',
-      label: '血压',
+      label: '最近血压情况',
       unit: 'mmHg',
       icon: (
         <svg
@@ -85,6 +39,28 @@ export function HealthSummaryCard() {
       ),
       gradient: 'from-violet-400 to-purple-500',
       trend: { value: '正常', isUp: true }
+    },
+    {
+      value: therapyCount.toString(),
+      label: '理疗次数',
+      unit: '次',
+      icon: (
+        <svg
+          className='h-5 w-5 text-white'
+          fill='none'
+          stroke='currentColor'
+          viewBox='0 0 24 24'
+        >
+          <path
+            strokeLinecap='round'
+            strokeLinejoin='round'
+            strokeWidth='2'
+            d='M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z'
+          />
+        </svg>
+      ),
+      gradient: 'from-teal-400 to-cyan-500',
+      trend: { value: '+3', isUp: true }
     }
   ];
 
@@ -95,7 +71,7 @@ export function HealthSummaryCard() {
         <span className='text-xs text-slate-400'>实时更新</span>
       </div>
 
-      <div className='grid grid-cols-3 gap-3'>
+      <div className='grid grid-cols-2 gap-3'>
         {metrics.map((metric, index) => (
           <div key={index} className='text-center'>
             {/* 图标 */}
