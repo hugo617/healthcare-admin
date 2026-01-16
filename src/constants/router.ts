@@ -9,7 +9,10 @@ import {
   Shield,
   Key,
   Building,
-  Building2
+  Building2,
+  Database,
+  ClipboardList,
+  HeartPulse
 } from 'lucide-react';
 
 // 业务导航列表
@@ -116,6 +119,38 @@ export const systemNavList: NavItem[] = [
           searchShortcut: ['l'],
           searchSection: '系统管理',
           searchPriority: 5
+        }
+      }
+    ]
+  },
+  {
+    title: '数据管理',
+    url: '#',
+    icon: Database,
+    isActive: false,
+    items: [
+      {
+        title: '服务记录',
+        url: '/admin/dashboard/data/service-record',
+        description: '服务记录管理',
+        icon: ClipboardList,
+        searchConfig: {
+          keywords: 'service record 服务记录',
+          searchShortcut: ['sr'],
+          searchSection: '数据管理',
+          searchPriority: 7
+        }
+      },
+      {
+        title: '健康档案',
+        url: '/admin/dashboard/data/health-record',
+        description: '个人健康档案管理',
+        icon: HeartPulse,
+        searchConfig: {
+          keywords: 'health record 健康档案 记录',
+          searchShortcut: ['hr'],
+          searchSection: '数据管理',
+          searchPriority: 8
         }
       }
     ]

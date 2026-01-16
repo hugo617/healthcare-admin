@@ -19,7 +19,7 @@ import {
 } from '@/components/table/action-dropdown';
 import { formatDateTime } from '@/components/table/utils';
 import { PermissionGuard } from '@/components/auth/permission-guard';
-import { PERMISSIONS } from '@/lib/permissions';
+import { PERMISSIONS } from '@/lib/permission-constants';
 import { cn } from '@/lib/utils';
 import type { Tenant, PaginationInfo, EmptyState } from '../types';
 import {

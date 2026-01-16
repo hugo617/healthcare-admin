@@ -4,7 +4,7 @@ import { ChevronRight } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { usePermissions } from '@/hooks/use-permissions';
-import { ROUTE_PERMISSIONS } from '@/lib/permissions';
+import { ROUTE_PERMISSIONS } from '@/lib/permission-constants';
 import {
   Collapsible,
   CollapsibleContent,

@@ -3,6 +3,7 @@ import { verifyToken } from './auth';
 import { db } from '@/db';
 import { rolePermissions, permissions, users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { PERMISSIONS } from '@/lib/permissions';
 
 /**
  * 从请求中获取用户ID (服务端专用)
@@ -52,23 +53,29 @@ export async function getUserPermissions(userId?: number): Promise<string[]> {
 
     // 如果是超级管理员，返回所有权限
     if (userInfo.isSuperAdmin) {
-      const allPermissions = await db.select({
-        code: permissions.code
-      }).from(permissions);
+      const allPermissions = await db
+        .select({
+          code: permissions.code
+        })
+        .from(permissions);
       const dbPermissions = allPermissions.map((p) => p.code);
 
-      // 硬编码添加租户管理权限（因为数据库中可能没有这些权限）
-      const tenantPermissions = [
-        'admin.tenant',
-        'admin.tenant.read',
-        'admin.tenant.create',
-        'admin.tenant.update',
-        'admin.tenant.delete',
-        'admin.tenant.config'
-      ];
+      // 从 PERMISSIONS 常量中提取所有权限代码
+      const allPermissionCodes: string[] = [];
+      const extractPermissions = (obj: any, prefix = '') => {
+        for (const key in obj) {
+          const value = obj[key];
+          if (typeof value === 'string') {
+            allPermissionCodes.push(value);
+          } else if (typeof value === 'object' && value !== null) {
+            extractPermissions(value, prefix + key + '.');
+          }
+        }
+      };
+      extractPermissions(PERMISSIONS);
 
-      // 合并权限并去重
-      return [...new Set([...dbPermissions, ...tenantPermissions])];
+      // 合并权限：数据库权限 + PERMISSIONS常量中的权限
+      return [...new Set([...dbPermissions, ...allPermissionCodes])];
     }
 
     // 获取角色权限

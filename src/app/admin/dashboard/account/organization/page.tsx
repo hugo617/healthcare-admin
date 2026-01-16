@@ -8,7 +8,7 @@ import React, { useEffect, useState } from 'react';
 import { Building2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PermissionGuard } from '@/components/auth/permission-guard';
-import { PERMISSIONS } from '@/lib/permissions';
+import { PERMISSIONS } from '@/lib/permission-constants';
 import PageContainer from '@/components/layout/page-container';
 import { Pagination } from '@/components/table/pagination';
 

@@ -7,7 +7,7 @@ import {
   MoreVertical
 } from 'lucide-react';
 import { PermissionGuard } from '@/components/auth/permission-guard';
-import { PERMISSIONS } from '@/lib/permissions';
+import { PERMISSIONS } from '@/lib/permission-constants';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
