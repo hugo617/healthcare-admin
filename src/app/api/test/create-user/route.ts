@@ -12,40 +12,52 @@ export async function POST() {
     if (existingRoles.length > 0) {
       defaultRole = existingRoles[0];
     } else {
-      [defaultRole] = await db.insert(roles).values({
-        name: '测试角色',
-        code: 'test-role',
-        description: '测试用角色',
-        isSuper: true,
-        isSystem: false
-      }).returning();
+      const roleResult = await db
+        .insert(roles)
+        .values({
+          name: '测试角色',
+          code: 'test-role',
+          description: '测试用角色',
+          isSuper: true,
+          isSystem: false
+        })
+        .returning();
+      defaultRole = roleResult[0];
     }
 
     // 创建测试用户
     const hashedPassword = await bcrypt.hash('Test@123456', 12);
 
-    const [testUser] = await db.insert(users).values({
-      email: 'test@example.com',
-      username: 'TestUser',
-      password: hashedPassword,
-      roleId: defaultRole.id,
-      isSuperAdmin: true,
-      status: 'active',
-      tenantId: 1
-    }).returning();
+    const testUserResult = await db
+      .insert(users)
+      .values({
+        email: 'test@example.com',
+        username: 'TestUser',
+        password: hashedPassword,
+        roleId: defaultRole.id,
+        isSuperAdmin: true,
+        status: 'active',
+        tenantId: 1
+      })
+      .returning();
+    const testUser = testUserResult[0];
 
     // 创建管理员用户
     const adminPassword = await bcrypt.hash('Admin@123456', 12);
 
-    const [adminUser] = await db.insert(users).values({
-      email: 'admin@example.com',
-      username: 'Administrator',
-      password: adminPassword,
-      roleId: defaultRole.id,
-      isSuperAdmin: true,
-      status: 'active',
-      tenantId: 1
-    }).returning();
+    const adminUserResult = await db
+      .insert(users)
+      .values({
+        email: 'admin@example.com',
+        username: 'Administrator',
+        password: adminPassword,
+        roleId: defaultRole.id,
+        isSuperAdmin: true,
+        status: 'active',
+        tenantId: 1
+      })
+      .returning();
+    const adminUser = adminUserResult[0];
 
     return NextResponse.json({
       success: true,
@@ -70,7 +82,11 @@ export async function POST() {
   } catch (error) {
     console.error('创建用户失败:', error);
     return NextResponse.json(
-      { success: false, message: '创建用户失败', error: error instanceof Error ? error.message : String(error) },
+      {
+        success: false,
+        message: '创建用户失败',
+        error: error instanceof Error ? error.message : String(error)
+      },
       { status: 500 }
     );
   }
