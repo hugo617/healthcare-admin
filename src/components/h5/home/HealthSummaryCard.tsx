@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
 interface HealthMetric {
   value: string | number;
   label: string;
@@ -14,8 +16,75 @@ interface HealthMetric {
 }
 
 export function HealthSummaryCard() {
-  // 模拟数据
-  const therapyCount = 12;
+  const [therapyCount, setTherapyCount] = useState<number>(0);
+  const [weeklyNewCount, setWeeklyNewCount] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadTherapyCount();
+  }, []);
+
+  const loadTherapyCount = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      // 获取服务档案
+      const archiveResponse = await fetch(
+        '/api/service-archives?page=1&pageSize=1',
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
+      if (archiveResponse.ok) {
+        const archiveData = await archiveResponse.json();
+        if (archiveData.data?.list?.length > 0) {
+          const archive = archiveData.data.list[0];
+          // 获取该档案的服务记录数
+          const recordsResponse = await fetch(
+            `/api/service-records/archive/${archive.id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`
+              }
+            }
+          );
+
+          if (recordsResponse.ok) {
+            const recordsData = await recordsResponse.json();
+            const records = recordsData.data?.records || [];
+            const count = records.length;
+            setTherapyCount(count);
+
+            // 计算本周新增次数
+            const now = new Date();
+            const dayOfWeek = now.getDay();
+            const weekStart = new Date(now);
+            weekStart.setDate(
+              now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1)
+            );
+            weekStart.setHours(0, 0, 0, 0);
+
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+            weekEnd.setHours(23, 59, 59, 999);
+
+            const weeklyCount = records.filter((record: any) => {
+              const recordDate = new Date(record.serviceDate);
+              return recordDate >= weekStart && recordDate <= weekEnd;
+            }).length;
+
+            setWeeklyNewCount(weeklyCount);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('加载理疗次数失败:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const metrics: HealthMetric[] = [
     {
@@ -60,7 +129,9 @@ export function HealthSummaryCard() {
         </svg>
       ),
       gradient: 'from-teal-400 to-cyan-500',
-      trend: { value: '+3', isUp: true }
+      ...(weeklyNewCount > 0 && {
+        trend: { value: `本周+${weeklyNewCount}`, isUp: true }
+      })
     }
   ];
 

@@ -18,7 +18,6 @@ export default function HomePage() {
   const [showMenu, setShowMenu] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
-  const [hasCheckedIn, setHasCheckedIn] = useState(false);
   const [authState, setAuthState] = useState<any | null>(null);
   const [isClient, setIsClient] = useState(false);
 
@@ -37,15 +36,8 @@ export default function HomePage() {
     router.push('/h5/login');
   };
 
-  const handleCheckIn = () => {
-    if (hasCheckedIn) {
-      setToastMessage('今天已经签到过了！');
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 2000);
-      return;
-    }
-    setHasCheckedIn(true);
-    setToastMessage('签到成功！获得 10 积分');
+  const handleToast = (message: string) => {
+    setToastMessage(message);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 2000);
   };
@@ -90,11 +82,7 @@ export default function HomePage() {
       <div className='relative z-10 mx-auto max-w-lg'>
         {/* 可滚动内容区域 */}
         <div className='scrollable-content'>
-          <UserProfileCard
-            user={authState.user}
-            onCheckIn={handleCheckIn}
-            hasCheckedIn={hasCheckedIn}
-          />
+          <UserProfileCard user={authState.user} onToast={handleToast} />
           <HealthSummaryCard />
           <QuickActionsGrid />
           <DailyReminderCard />

@@ -1,36 +1,104 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { NeumorphicCard } from '@/components/h5/common/NeumorphicCard';
+
+interface UserPointsData {
+  points: number;
+  level: number;
+  levelName: string;
+  experience: number;
+  nextLevelExp: number;
+  checkInStreak: number;
+  totalCheckInDays: number;
+  lastCheckInDate: string | null;
+  todayCheckedIn: boolean;
+}
 
 interface UserProfileCardProps {
   user: {
     email?: string;
     id?: number | string;
   };
-  onCheckIn: () => void;
-  hasCheckedIn: boolean;
+  onToast?: (message: string) => void;
 }
 
-export function UserProfileCard({
-  user,
-  onCheckIn,
-  hasCheckedIn
-}: UserProfileCardProps) {
-  // 模拟数据
-  const healthPoints = 2580;
-  const healthPointsGoal = 5000;
-  const healthPointsPercent = Math.round(
-    (healthPoints / healthPointsGoal) * 100
-  );
-  const checkInStreak = 15;
-  const membershipLevel = '黄金';
+export function UserProfileCard({ user, onToast }: UserProfileCardProps) {
+  const [pointsData, setPointsData] = useState<UserPointsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [checkInLoading, setCheckInLoading] = useState(false);
 
-  // 签到成功动画
-  const handleCheckIn = () => {
-    if (!hasCheckedIn) {
-      onCheckIn();
+  // 获取用户积分数据
+  useEffect(() => {
+    fetchPointsData();
+  }, []);
+
+  const fetchPointsData = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/h5/points');
+      const result = await response.json();
+
+      if (result.success) {
+        setPointsData(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch points data:', error);
+    } finally {
+      setLoading(false);
     }
   };
+
+  // 签到处理
+  const handleCheckIn = async () => {
+    if (checkInLoading || pointsData?.todayCheckedIn) {
+      return;
+    }
+
+    try {
+      setCheckInLoading(true);
+      const response = await fetch('/api/h5/check-in', {
+        method: 'POST'
+      });
+      const result = await response.json();
+
+      if (result.success) {
+        const { success, messages, points, levelUp } = result.data;
+
+        if (success) {
+          // 显示签到成功消息
+          messages.forEach((msg) => {
+            onToast?.(msg);
+          });
+
+          // 刷新积分数据
+          await fetchPointsData();
+        } else if (result.data.alreadyCheckedIn) {
+          onToast?.('今天已经签到过了！');
+        }
+      } else {
+        onToast?.(result.error || '签到失败');
+      }
+    } catch (error) {
+      console.error('Check-in error:', error);
+      onToast?.('签到失败，请重试');
+    } finally {
+      setCheckInLoading(false);
+    }
+  };
+
+  if (loading || !pointsData) {
+    return (
+      <div className='relative mx-4 mb-4 h-64 animate-pulse rounded-3xl bg-gray-200' />
+    );
+  }
+
+  // 计算进度条
+  const healthPointsGoal = pointsData.nextLevelExp;
+  const healthPointsPercent = Math.min(
+    Math.round((pointsData.experience / healthPointsGoal) * 100),
+    100
+  );
 
   return (
     <div className='relative mx-4 mb-4 overflow-hidden rounded-3xl bg-white shadow-lg'>
@@ -43,9 +111,9 @@ export function UserProfileCard({
         {/* 签到按钮 */}
         <button
           onClick={handleCheckIn}
-          disabled={hasCheckedIn}
+          disabled={pointsData.todayCheckedIn || checkInLoading}
           className={`absolute top-4 right-4 flex cursor-pointer items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-white backdrop-blur-sm transition-all duration-300 ${
-            hasCheckedIn
+            pointsData.todayCheckedIn
               ? 'bg-sage/40 cursor-not-allowed text-white/70'
               : 'bg-white/20 hover:bg-white/30 active:scale-95'
           }`}
@@ -63,20 +131,23 @@ export function UserProfileCard({
               d='M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'
             />
           </svg>
-          <span>{hasCheckedIn ? '已签到' : '签到'}</span>
+          <span>
+            {checkInLoading
+              ? '签到中...'
+              : pointsData.todayCheckedIn
+                ? '已签到'
+                : '签到'}
+          </span>
         </button>
 
         {/* 会员徽章 */}
         <div className='absolute -bottom-6 left-6 flex items-center gap-3'>
           <div className='flex h-16 w-16 items-center justify-center rounded-2xl border-4 border-white bg-white shadow-lg'>
             <div className='from-primary to-sage flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br'>
-              <span className='font-heading text-lg text-white'>1</span>
+              <span className='font-heading text-lg text-white'>
+                {pointsData.level}
+              </span>
             </div>
-          </div>
-          <div className='rounded-full bg-white/90 px-3 py-1 shadow-sm backdrop-blur-sm'>
-            <span className='text-primary text-sm font-semibold'>
-              {membershipLevel}会员
-            </span>
           </div>
         </div>
       </div>
@@ -101,10 +172,10 @@ export function UserProfileCard({
             <div className='flex-1'>
               <p className='mb-1 text-sm text-slate-600'>健康积分</p>
               <p className='font-heading text-primary text-3xl font-bold'>
-                {healthPoints.toLocaleString()}
+                {pointsData.points.toLocaleString()}
               </p>
               <p className='mt-1 text-xs text-slate-400'>
-                目标: {healthPointsGoal.toLocaleString()}
+                经验: {pointsData.experience} / {pointsData.nextLevelExp}
               </p>
             </div>
             <div className='relative h-16 w-16'>
@@ -155,14 +226,18 @@ export function UserProfileCard({
         <div className='grid grid-cols-2 gap-3'>
           <div className='rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 to-amber-50 p-4 text-center'>
             <p className='font-heading text-accent text-2xl font-bold'>
-              {checkInStreak}
+              {pointsData.checkInStreak}
               <span className='ml-0.5 text-sm'>天</span>
             </p>
             <p className='mt-1 text-xs text-slate-500'>连续签到</p>
           </div>
           <div className='border-sage-light/50 rounded-2xl border bg-gradient-to-br from-green-50 to-emerald-50 p-4 text-center'>
-            <p className='font-heading text-sage text-xl font-bold'>Lv.3</p>
-            <p className='mt-1 text-xs text-slate-500'>健康等级</p>
+            <p className='font-heading text-sage text-xl font-bold'>
+              Lv.{pointsData.level}
+            </p>
+            <p className='mt-1 text-xs text-slate-500'>
+              {pointsData.levelName}
+            </p>
           </div>
         </div>
       </div>

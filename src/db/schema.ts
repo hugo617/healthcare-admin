@@ -505,7 +505,9 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   serviceArchives: many(serviceArchives),
   serviceRecords: many(serviceRecords),
   healthRecords: many(healthRecords),
-  serviceAppointments: many(serviceAppointments)
+  serviceAppointments: many(serviceAppointments),
+  userPoints: one(userPoints),
+  pointTransactions: many(pointTransactions)
 }));
 
 export const rolesRelations = relations(roles, ({ many, one }) => ({
@@ -569,7 +571,10 @@ export const tenantsRelations = relations(tenants, ({ many }) => ({
   serviceArchives: many(serviceArchives),
   serviceRecords: many(serviceRecords),
   healthRecords: many(healthRecords),
-  serviceAppointments: many(serviceAppointments)
+  serviceAppointments: many(serviceAppointments),
+  userPoints: many(userPoints),
+  pointTransactions: many(pointTransactions),
+  pointRewards: many(pointRewards)
 }));
 
 export const rolePermissionsRelations = relations(
@@ -1140,3 +1145,208 @@ export const templatePermissionsRelations = relations(
     })
   })
 );
+
+// ============ 积分系统相关表 ============
+
+// 积分交易类型枚举
+export const pointTransactionTypeEnum = pgEnum('point_transaction_type', [
+  'earn',
+  'spend',
+  'expire',
+  'adjust',
+  'level_up'
+]);
+
+// 积分奖励类型枚举
+export const pointRewardTypeEnum = pgEnum('point_reward_type', [
+  'one_time',
+  'daily',
+  'streak',
+  'achievement'
+]);
+
+// 用户积分表
+export const userPoints = pgTable(
+  'user_points',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tenantId: bigint('tenant_id', { mode: 'number' }).notNull().default(1),
+
+    // 积分相关
+    points: integer('points').notNull().default(0), // 当前可用积分
+    totalEarned: integer('total_earned').notNull().default(0), // 累计获得积分
+    totalSpent: integer('total_spent').notNull().default(0), // 累计消耗积分
+
+    // 等级相关
+    level: integer('level').notNull().default(1), // 当前等级
+    experience: integer('experience').notNull().default(0), // 当前经验值
+    nextLevelExp: integer('next_level_exp').notNull().default(50), // 下一级所需经验
+
+    // 签到相关
+    checkInStreak: integer('check_in_streak').default(0), // 连续签到天数
+    lastCheckInDate: varchar('last_check_in_date', { length: 10 }), // 最后签到日期 YYYY-MM-DD
+    totalCheckInDays: integer('total_check_in_days').default(0), // 累计签到天数
+
+    metadata: jsonb('metadata').default('{}'),
+    isDeleted: boolean('is_deleted').default(false),
+    deletedAt: timestamp('deleted_at'),
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow(),
+    createdBy: integer('created_by').references(() => users.id),
+    updatedBy: integer('updated_by').references(() => users.id)
+  },
+  (t) => ({
+    userIdIdx: index('idx_user_points_user_id').on(t.userId),
+    levelIdx: index('idx_user_points_level').on(t.level),
+    checkInStreakIdx: index('idx_user_points_check_in_streak').on(
+      t.checkInStreak
+    )
+  })
+);
+
+// 积分流水表
+export const pointTransactions = pgTable(
+  'point_transactions',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tenantId: bigint('tenant_id', { mode: 'number' }).notNull().default(1),
+
+    // 交易信息
+    type: pointTransactionTypeEnum('type').notNull(), // 'earn', 'spend', 'expire', 'adjust', 'level_up'
+    amount: integer('amount').notNull(), // 积分变动数量
+    balance: integer('balance').notNull(), // 交易后余额
+
+    // 来源和描述
+    source: varchar('source', { length: 50 }), // 'check_in', 'service', 'reward', 'expire'
+    description: varchar('description', { length: 255 }),
+    referenceId: varchar('reference_id', { length: 100 }), // 关联业务ID
+
+    // 经验相关
+    experienceGained: integer('experience_gained').default(0), // 获得的经验值
+
+    status: varchar('status', { length: 20 }).default('completed'), // 'pending', 'completed', 'cancelled'
+    metadata: jsonb('metadata').default('{}'),
+    createdAt: timestamp('created_at').defaultNow()
+  },
+  (t) => ({
+    userIdIdx: index('idx_point_transactions_user_id').on(t.userId),
+    createdAtIdx: index('idx_point_transactions_created_at').on(t.createdAt),
+    typeIdx: index('idx_point_transactions_type').on(t.type)
+  })
+);
+
+// 积分奖励配置表
+export const pointRewards = pgTable(
+  'point_rewards',
+  {
+    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
+    tenantId: bigint('tenant_id', { mode: 'number' }).notNull().default(1),
+
+    // 奖励配置
+    code: varchar('code', { length: 50 }).notNull(), // 唯一标识: 'daily_check_in'
+    name: varchar('name', { length: 100 }).notNull(),
+    type: pointRewardTypeEnum('type').notNull(), // 'one_time', 'daily', 'streak', 'achievement'
+
+    // 奖励内容
+    points: integer('points').notNull().default(0),
+    experience: integer('experience').notNull().default(0),
+
+    // 条件限制
+    maxDailyTimes: integer('max_daily_times').default(1), // 每日最大次数
+    maxTotalTimes: integer('max_total_times').default(0), // 总次数限制，0=无限制
+
+    // 连续签到配置
+    streakDays: integer('streak_days').default(0), // 连续天数要求
+
+    isActive: boolean('is_active').default(true),
+    sortOrder: integer('sort_order').default(0),
+
+    metadata: jsonb('metadata').default('{}'),
+    isDeleted: boolean('is_deleted').default(false),
+    deletedAt: timestamp('deleted_at'),
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow(),
+    createdBy: integer('created_by').references(() => users.id),
+    updatedBy: integer('updated_by').references(() => users.id)
+  },
+  (t) => ({
+    codeUnique: unique('point_rewards_code_unique').on(t.code),
+    tenantIdx: index('idx_point_rewards_tenant_id').on(t.tenantId),
+    isActiveIdx: index('idx_point_rewards_is_active').on(t.isActive),
+    isDeletedIdx: index('idx_point_rewards_is_deleted').on(t.isDeleted)
+  })
+);
+
+// 积分表关系定义
+export const userPointsRelations = relations(userPoints, ({ one, many }) => ({
+  user: one(users, {
+    fields: [userPoints.userId],
+    references: [users.id]
+  }),
+  tenant: one(tenants, {
+    fields: [userPoints.tenantId],
+    references: [tenants.id]
+  }),
+  transactions: many(pointTransactions),
+  createdBy: one(users, {
+    fields: [userPoints.createdBy],
+    references: [users.id]
+  }),
+  updatedBy: one(users, {
+    fields: [userPoints.updatedBy],
+    references: [users.id]
+  })
+}));
+
+export const pointTransactionsRelations = relations(
+  pointTransactions,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [pointTransactions.userId],
+      references: [users.id]
+    }),
+    tenant: one(tenants, {
+      fields: [pointTransactions.tenantId],
+      references: [tenants.id]
+    }),
+    userPoints: one(userPoints, {
+      fields: [pointTransactions.userId],
+      references: [userPoints.userId]
+    })
+  })
+);
+
+export const pointRewardsRelations = relations(pointRewards, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [pointRewards.tenantId],
+    references: [tenants.id]
+  }),
+  createdBy: one(users, {
+    fields: [pointRewards.createdBy],
+    references: [users.id]
+  }),
+  updatedBy: one(users, {
+    fields: [pointRewards.updatedBy],
+    references: [users.id]
+  })
+}));
+
+// 积分系统类型
+export type UserPoints = typeof userPoints.$inferSelect;
+export type NewUserPoints = typeof userPoints.$inferInsert;
+
+export type PointTransaction = typeof pointTransactions.$inferSelect;
+export type NewPointTransaction = typeof pointTransactions.$inferInsert;
+
+export type PointReward = typeof pointRewards.$inferSelect;
+export type NewPointReward = typeof pointRewards.$inferInsert;
+
+export type PointTransactionType =
+  (typeof pointTransactionTypeEnum.enumValues)[number];
+export type PointRewardType = (typeof pointRewardTypeEnum.enumValues)[number];
