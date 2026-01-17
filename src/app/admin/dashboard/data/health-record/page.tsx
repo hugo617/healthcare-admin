@@ -107,7 +107,7 @@ export default function HealthRecordManagementPage() {
 
         {/* 统计信息 */}
         {statistics && (
-          <div className='grid gap-4 md:grid-cols-5'>
+          <div className='grid gap-4 md:grid-cols-2'>
             <div className='rounded-lg border p-4'>
               <div className='text-muted-foreground text-sm'>总记录数</div>
               <div className='text-2xl font-bold'>
@@ -118,25 +118,6 @@ export default function HealthRecordManagementPage() {
               <div className='text-muted-foreground text-sm'>本月记录</div>
               <div className='text-2xl font-bold'>
                 {statistics.overview.thisMonthRecords}
-              </div>
-            </div>
-            <div className='rounded-lg border p-4'>
-              <div className='text-muted-foreground text-sm'>平均血压</div>
-              <div className='text-2xl font-bold'>
-                {statistics.overview.avgBloodPressure.systolic}/
-                {statistics.overview.avgBloodPressure.diastolic}
-              </div>
-            </div>
-            <div className='rounded-lg border p-4'>
-              <div className='text-muted-foreground text-sm'>平均血糖</div>
-              <div className='text-2xl font-bold'>
-                {statistics.overview.avgBloodSugar}
-              </div>
-            </div>
-            <div className='rounded-lg border p-4'>
-              <div className='text-muted-foreground text-sm'>平均心率</div>
-              <div className='text-2xl font-bold'>
-                {statistics.overview.avgHeartRate}
               </div>
             </div>
           </div>
