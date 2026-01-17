@@ -67,7 +67,7 @@ export function UserProfileCard({ user, onToast }: UserProfileCardProps) {
 
         if (success) {
           // 显示签到成功消息
-          messages.forEach((msg) => {
+          messages.forEach((msg: string) => {
             onToast?.(msg);
           });
 
@@ -161,9 +161,6 @@ export function UserProfileCard({ user, onToast }: UserProfileCardProps) {
             </p>
             <p className='text-xs text-slate-400'>ID: {user.id || 'Unknown'}</p>
           </div>
-          <button className='bg-health-bg text-primary hover:bg-sage-light cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-colors active:scale-95'>
-            编辑资料
-          </button>
         </div>
 
         {/* 健康积分进度环 */}

@@ -1,31 +1,48 @@
 /**
- * 健康记录管理 - 类型定义
+ * 健康档案管理 - 类型定义
  */
 
-// 健康记录
-export interface HealthRecord {
+// 基本信息 (从 basicInfo JSONB)
+export interface BasicInfo {
+  name: string;
+  age: string;
+  sex: 'male' | 'female';
+  height: string;
+  weight: string;
+  contact: string;
+}
+
+// 健康史 (从 healthHistory JSONB)
+export interface HealthHistory {
+  allergy: string;
+  allergyText: string;
+  medication: string;
+  medicalDevice: string;
+  recentCheckup: {
+    time: string;
+    result: string;
+  };
+  chronicDisease: string;
+  surgeryHistory: {
+    time: string;
+    location: string;
+  };
+  pregnancyPeriod: string;
+}
+
+// 健康档案
+export interface HealthArchive {
   id: string;
   userId: number;
-  recordDate: string; // YYYY-MM-DD
-  bloodPressure: {
-    systolic: number;
-    diastolic: number;
-  };
-  bloodSugar: {
-    value: number;
-    unit: string;
-    type: 'fasting' | 'postprandial' | 'random';
-  };
-  heartRate?: number; // bpm
-  weight: {
-    value: number;
-    unit: string;
-  };
-  temperature: {
-    value: number;
-    unit: string;
-  };
-  notes: string;
+  customerNo: string;
+  channels: Record<string, any>;
+  basicInfo: BasicInfo;
+  healthHistory: HealthHistory;
+  subjectiveDemand: string;
+  signature1: Record<string, any>;
+  signature2: Record<string, any>;
+  footer: Record<string, any>;
+  status: string;
   createdAt: string;
   updatedAt: string;
   // 关联数据
@@ -39,41 +56,16 @@ export interface HealthRecord {
 }
 
 // 筛选条件
-export interface HealthRecordFilters {
+export interface HealthArchiveFilters {
   search?: string;
   userId?: number;
+  status?: string;
   startDate?: string;
   endDate?: string;
-  bloodSugarType?: 'all' | 'fasting' | 'postprandial' | 'random';
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
   page?: number;
   limit?: number;
-}
-
-// 表单数据
-export interface HealthRecordFormData {
-  userId: number;
-  recordDate: string;
-  bloodPressure: {
-    systolic: number;
-    diastolic: number;
-  };
-  bloodSugar: {
-    value: number;
-    unit: string;
-    type: 'fasting' | 'postprandial' | 'random';
-  };
-  heartRate?: number;
-  weight: {
-    value: number;
-    unit: string;
-  };
-  temperature: {
-    value: number;
-    unit: string;
-  };
-  notes: string;
 }
 
 // 分页信息
@@ -85,66 +77,53 @@ export interface PaginationInfo {
 }
 
 // 统计信息
-export interface HealthRecordStatistics {
+export interface HealthArchiveStatistics {
   overview: {
-    totalRecords: number;
-    thisMonthRecords: number;
-    avgBloodPressure: {
-      systolic: number;
-      diastolic: number;
-    };
-    avgBloodSugar: number;
-    avgHeartRate: number;
-    avgWeight: number;
+    totalArchives: number;
+    thisMonthArchives: number;
+    activeArchives: number;
   };
-  latestRecord?: HealthRecord;
   byUser: {
     userId: number;
     userName: string;
-    recordCount: number;
-    lastRecordDate: string;
+    archiveCount: number;
+    lastCreatedDate: string;
   }[];
 }
 
-// 趋势数据
-export interface HealthTrendData {
-  dates: string[];
-  bloodPressure: {
-    systolic: number[];
-    diastolic: number[];
-  };
-  bloodSugar: {
-    fasting: number[];
-    postprandial: number[];
-  };
-  heartRate: number[];
-  weight: number[];
+// 表单数据
+export interface HealthArchiveFormData {
+  userId: number;
+  customerNo: string;
+  basicInfo: BasicInfo;
+  healthHistory: HealthHistory;
+  subjectiveDemand: string;
+  status: string;
 }
 
 // 对话框状态
-export type HealthRecordDialogType = 'create' | 'edit' | null;
+export type HealthArchiveDialogType = 'create' | 'edit' | null;
 
-export interface HealthRecordDialogState {
-  type: HealthRecordDialogType;
-  record: HealthRecord | null;
+export interface HealthArchiveDialogState {
+  type: HealthArchiveDialogType;
+  archive: HealthArchive | null;
   open: boolean;
 }
 
-// 健康指标状态
-export type HealthIndicatorStatus = 'normal' | 'warning' | 'danger' | 'low';
+// 档案状态
+export type ArchiveStatus = 'active' | 'inactive' | 'pending';
 
-export interface HealthIndicatorLevel {
-  status: HealthIndicatorStatus;
+export interface ArchiveStatusInfo {
+  status: ArchiveStatus;
   label: string;
   color: string;
-  bgColor: string;
 }
 
-// 时间范围选项
-export type TimeRange = 'week' | 'month' | 'quarter' | 'year';
-
-// 趋势图表配置
-export interface TrendChartConfig {
-  type: 'bloodPressure' | 'bloodSugar' | 'heartRate' | 'weight' | 'all';
-  timeRange: TimeRange;
+// 导出选项
+export interface ExportOptions {
+  format?: 'csv' | 'excel';
+  userId?: number;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
 }

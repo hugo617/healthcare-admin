@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { serviceArchives } from '@/db/schema';
+import { healthArchives } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { updateServiceArchiveSchema } from '@/lib/validators/service-archive';
+import { updateHealthArchiveSchema } from '@/lib/validators/health-archive';
 import {
   successResponse,
   errorResponse,
@@ -12,7 +12,7 @@ import { auth } from '@/lib/auth';
 import { serializeServiceArchive } from '@/lib/utils/serialize';
 
 /**
- * GET /api/service-archives/:id
+ * GET /api/health-archives/:id
  * 获取单个档案详情
  */
 export async function GET(
@@ -36,12 +36,12 @@ export async function GET(
     // 3. 查询档案 - 必须属于当前用户
     const [archive] = await db
       .select()
-      .from(serviceArchives)
+      .from(healthArchives)
       .where(
         and(
-          eq(serviceArchives.id, archiveId),
-          eq(serviceArchives.userId, session.user.id), // 权限检查
-          eq(serviceArchives.isDeleted, false)
+          eq(healthArchives.id, archiveId),
+          eq(healthArchives.userId, session.user.id), // 权限检查
+          eq(healthArchives.isDeleted, false)
         )
       )
       .limit(1);
@@ -56,13 +56,13 @@ export async function GET(
     // 5. 返回结果
     return successResponse(serializedArchive);
   } catch (error: any) {
-    console.error('获取服务档案详情失败:', error);
+    console.error('获取健康档案详情失败:', error);
     return errorResponse(error.message || '查询失败');
   }
 }
 
 /**
- * PUT /api/service-archives/:id
+ * PUT /api/health-archives/:id
  * 更新档案
  */
 export async function PUT(
@@ -86,12 +86,12 @@ export async function PUT(
     // 3. 检查档案是否存在且属于当前用户
     const [existingArchive] = await db
       .select()
-      .from(serviceArchives)
+      .from(healthArchives)
       .where(
         and(
-          eq(serviceArchives.id, archiveId),
-          eq(serviceArchives.userId, session.user.id),
-          eq(serviceArchives.isDeleted, false)
+          eq(healthArchives.id, archiveId),
+          eq(healthArchives.userId, session.user.id),
+          eq(healthArchives.isDeleted, false)
         )
       )
       .limit(1);
@@ -104,17 +104,17 @@ export async function PUT(
     const body = await request.json();
 
     // 5. 验证数据
-    const validatedData = updateServiceArchiveSchema.parse(body);
+    const validatedData = updateHealthArchiveSchema.parse(body);
 
     // 6. 更新档案
     const [updatedArchive] = await db
-      .update(serviceArchives)
+      .update(healthArchives)
       .set({
         ...validatedData,
         updatedAt: new Date(),
         updatedBy: session.user.id
       })
-      .where(eq(serviceArchives.id, archiveId))
+      .where(eq(healthArchives.id, archiveId))
       .returning();
 
     // 7. 序列化数据
@@ -134,13 +134,13 @@ export async function PUT(
       );
     }
 
-    console.error('更新服务档案失败:', error);
+    console.error('更新健康档案失败:', error);
     return errorResponse(error.message || '更新失败');
   }
 }
 
 /**
- * DELETE /api/service-archives/:id
+ * DELETE /api/health-archives/:id
  * 删除档案(软删除)
  */
 export async function DELETE(
@@ -164,12 +164,12 @@ export async function DELETE(
     // 3. 检查档案是否存在且属于当前用户
     const [existingArchive] = await db
       .select()
-      .from(serviceArchives)
+      .from(healthArchives)
       .where(
         and(
-          eq(serviceArchives.id, archiveId),
-          eq(serviceArchives.userId, session.user.id),
-          eq(serviceArchives.isDeleted, false)
+          eq(healthArchives.id, archiveId),
+          eq(healthArchives.userId, session.user.id),
+          eq(healthArchives.isDeleted, false)
         )
       )
       .limit(1);
@@ -180,7 +180,7 @@ export async function DELETE(
 
     // 4. 软删除档案
     await db
-      .update(serviceArchives)
+      .update(healthArchives)
       .set({
         isDeleted: true,
         deletedAt: new Date(),
@@ -188,12 +188,12 @@ export async function DELETE(
         updatedAt: new Date(),
         updatedBy: session.user.id
       })
-      .where(eq(serviceArchives.id, archiveId));
+      .where(eq(healthArchives.id, archiveId));
 
     // 5. 返回结果
     return successResponse({ message: '删除成功' });
   } catch (error: any) {
-    console.error('删除服务档案失败:', error);
+    console.error('删除健康档案失败:', error);
     return errorResponse(error.message || '删除失败');
   }
 }

@@ -98,8 +98,9 @@ export default function ServicePage() {
 
       const token = localStorage.getItem('token');
 
-      const archiveResponse = await fetch(
-        '/api/service-archives?page=1&pageSize=1',
+      // 直接获取当前用户的服务记录
+      const recordsResponse = await fetch(
+        '/api/service-records?page=1&pageSize=100',
         {
           headers: {
             Authorization: `Bearer ${token}`
@@ -107,40 +108,33 @@ export default function ServicePage() {
         }
       );
 
-      if (archiveResponse.ok) {
-        const archiveData = await archiveResponse.json();
-        if (archiveData.data?.list?.length > 0) {
-          const archive = archiveData.data.list[0];
-          setCurrentArchiveId(archive.id);
-
-          const recordsResponse = await fetch(
-            `/api/service-records/archive/${archive.id}`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`
+      if (recordsResponse.ok) {
+        const recordsData = await recordsResponse.json();
+        if (recordsData.data?.list) {
+          const transformedRecords: ServiceRecord[] = recordsData.data.list.map(
+            (r: any) => {
+              // 设置当前 archiveId（使用第一个记录的 archiveId）
+              if (!currentArchiveId && r.archiveId) {
+                setCurrentArchiveId(r.archiveId);
               }
+              return {
+                id: parseInt(r.id),
+                date: r.serviceDate,
+                count: r.count,
+                bloodPressure: r.bloodPressure || { high: 0, low: 0 },
+                discomfort: r.discomfort || { tags: ['无'], otherText: '' },
+                duration: r.duration || 45,
+                temperature: r.temperature || 45,
+                feedback: r.feedback || '',
+                consultant: r.consultant || { name: '李顾问', signature: '' }
+              };
             }
           );
-
-          if (recordsResponse.ok) {
-            const recordsData = await recordsResponse.json();
-            if (recordsData.data?.records) {
-              const transformedRecords: ServiceRecord[] =
-                recordsData.data.records.map((r: any) => ({
-                  id: parseInt(r.id),
-                  date: r.serviceDate,
-                  count: r.count,
-                  bloodPressure: r.bloodPressure,
-                  discomfort: r.discomfort,
-                  duration: r.duration,
-                  temperature: r.temperature,
-                  feedback: r.feedback,
-                  consultant: r.consultant
-                }));
-              setRecords(transformedRecords);
-            }
-          }
+          setRecords(transformedRecords);
         }
+      } else {
+        console.error('加载服务记录失败:', recordsResponse.status);
+        alert('加载服务记录失败，请刷新重试');
       }
     } catch (error) {
       console.error('加载服务记录失败:', error);
@@ -554,7 +548,7 @@ export default function ServicePage() {
                     className='cursor-pointer border-2 border-dashed border-teal-500 p-4 text-center font-bold text-teal-600 transition-colors hover:bg-teal-50/50'
                     onClick={handleAddNew}
                   >
-                    + 填写今日服务记录 (第 {getNextCount()} 次)
+                    + 新增服务记录 (第 {getNextCount()} 次)
                   </td>
                 </tr>
               </tbody>

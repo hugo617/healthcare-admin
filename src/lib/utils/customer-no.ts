@@ -1,5 +1,5 @@
 import { db } from '@/db';
-import { serviceArchives } from '@/db/schema';
+import { healthArchives } from '@/db/schema';
 import { eq, gte, lte, sql, and } from 'drizzle-orm';
 
 /**
@@ -22,13 +22,13 @@ export async function generateCustomerNo(userId: number): Promise<string> {
 
   const result = await db
     .select({ count: sql<number>`COUNT(*)` })
-    .from(serviceArchives)
+    .from(healthArchives)
     .where(
       and(
-        eq(serviceArchives.userId, userId),
-        gte(serviceArchives.createdAt, todayStart),
-        lte(serviceArchives.createdAt, todayEnd),
-        eq(serviceArchives.isDeleted, false)
+        eq(healthArchives.userId, userId),
+        gte(healthArchives.createdAt, todayStart),
+        lte(healthArchives.createdAt, todayEnd),
+        eq(healthArchives.isDeleted, false)
       )
     );
 

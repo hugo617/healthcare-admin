@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { hasPermission } from '@/lib/permissions';
-import { PERMISSIONS } from '@/lib/permissions';
+import { hasPermission } from '@/lib/permissions-server';
+import { PERMISSIONS } from '@/lib/permissions-server';
 import { db } from '@/db';
 import { healthRecords } from '@/db/schema';
 import { eq, and, sql, desc } from 'drizzle-orm';
@@ -53,21 +53,22 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // 提取数据
     const dates = records.map((r) => r.recordDate);
     const bloodPressureSystolic = records.map(
-      (r) => r.bloodPressure?.systolic || null
+      (r) => (r.bloodPressure as any)?.systolic || null
     );
     const bloodPressureDiastolic = records.map(
-      (r) => r.bloodPressure?.diastolic || null
+      (r) => (r.bloodPressure as any)?.diastolic || null
     );
-    const bloodSugarFasting: number[] = [];
-    const bloodSugarPostprandial: number[] = [];
+    const bloodSugarFasting: (number | null)[] = [];
+    const bloodSugarPostprandial: (number | null)[] = [];
 
     records.forEach((r) => {
-      if (r.bloodSugar?.type === 'fasting') {
-        bloodSugarFasting.push(r.bloodSugar.value || null);
+      const bloodSugar = r.bloodSugar as any;
+      if (bloodSugar?.type === 'fasting') {
+        bloodSugarFasting.push(bloodSugar.value || null);
         bloodSugarPostprandial.push(null);
-      } else if (r.bloodSugar?.type === 'postprandial') {
+      } else if (bloodSugar?.type === 'postprandial') {
         bloodSugarFasting.push(null);
-        bloodSugarPostprandial.push(r.bloodSugar.value || null);
+        bloodSugarPostprandial.push(bloodSugar.value || null);
       } else {
         bloodSugarFasting.push(null);
         bloodSugarPostprandial.push(null);
@@ -75,7 +76,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
 
     const heartRate = records.map((r) => r.heartRate || null);
-    const weight = records.map((r) => r.weight?.value || null);
+    const weight = records.map((r) => (r.weight as any)?.value || null);
 
     // 根据type返回相应数据
     const data: any = {

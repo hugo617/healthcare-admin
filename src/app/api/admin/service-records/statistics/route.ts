@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { hasPermission } from '@/lib/permissions';
-import { PERMISSIONS } from '@/lib/permissions';
+import { hasPermission } from '@/lib/permissions-server';
+import { PERMISSIONS } from '@/lib/permissions-server';
 import { db } from '@/db';
-import { serviceRecords, serviceArchives } from '@/db/schema';
+import { serviceRecords, healthArchives } from '@/db/schema';
 import { eq, and, sql, gte, lte, count, desc } from 'drizzle-orm';
 
 /**
@@ -92,8 +92,8 @@ export async function GET(request: NextRequest) {
     // 获取档案详情
     const byArchive = await Promise.all(
       byArchiveResult.map(async (item) => {
-        const archive = await db.query.serviceArchives.findFirst({
-          where: eq(serviceArchives.id, item.archiveId),
+        const archive = await db.query.healthArchives.findFirst({
+          where: eq(healthArchives.id, item.archiveId),
           with: {
             user: {
               columns: {

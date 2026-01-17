@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { hasPermission } from '@/lib/permissions';
-import { PERMISSIONS } from '@/lib/permissions';
+import { hasPermission } from '@/lib/permissions-server';
+import { PERMISSIONS } from '@/lib/permissions-server';
 import { db } from '@/db';
-import { serviceRecords, users, serviceArchives } from '@/db/schema';
+import { serviceRecords, users, healthArchives } from '@/db/schema';
 import { eq, desc, and, sql, gt, count } from 'drizzle-orm';
 
 /**
@@ -45,8 +45,8 @@ export async function GET(request: NextRequest) {
     }
     if (customerNo) {
       // 通过档案编号筛选
-      const archives = await db.query.serviceArchives.findMany({
-        where: eq(serviceArchives.customerNo, customerNo),
+      const archives = await db.query.healthArchives.findMany({
+        where: eq(healthArchives.customerNo, customerNo),
         columns: { id: true }
       });
       if (archives.length > 0) {
@@ -99,10 +99,19 @@ export async function GET(request: NextRequest) {
           }
         }
       },
+      // 根据 sortBy 字段动态排序
       orderBy:
         sortOrder === 'asc'
-          ? [serviceRecords[sortBy] || serviceRecords.createdAt]
-          : [desc(serviceRecords[sortBy] || serviceRecords.createdAt)],
+          ? sortBy === 'serviceDate'
+            ? [serviceRecords.serviceDate]
+            : sortBy === 'createdAt'
+              ? [serviceRecords.createdAt]
+              : [serviceRecords.createdAt]
+          : sortBy === 'serviceDate'
+            ? [desc(serviceRecords.serviceDate)]
+            : sortBy === 'createdAt'
+              ? [desc(serviceRecords.createdAt)]
+              : [desc(serviceRecords.createdAt)],
       limit,
       offset: (page - 1) * limit
     });
@@ -113,12 +122,12 @@ export async function GET(request: NextRequest) {
       id: record.id.toString(),
       archiveId: record.archiveId.toString(),
       archive:
-        record.archive && typeof record.archive.id === 'bigint'
+        record.archive && !Array.isArray(record.archive)
           ? {
               ...record.archive,
-              id: record.archive.id.toString()
+              id: (record.archive.id as any).toString()
             }
-          : record.archive
+          : null
     }));
 
     return NextResponse.json({
@@ -191,12 +200,12 @@ export async function POST(request: NextRequest) {
     }
 
     // 获取档案信息
-    const archive = await db.query.serviceArchives.findFirst({
-      where: eq(serviceArchives.id, BigInt(archiveId))
+    const archive = await db.query.healthArchives.findFirst({
+      where: eq(healthArchives.id, BigInt(archiveId))
     });
 
     if (!archive) {
-      return NextResponse.json({ error: '服务档案不存在' }, { status: 404 });
+      return NextResponse.json({ error: '健康档案不存在' }, { status: 404 });
     }
 
     // 自动计算服务次数

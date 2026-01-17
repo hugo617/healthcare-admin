@@ -190,7 +190,7 @@ export default function HealthPage() {
     try {
       const token = localStorage.getItem('token');
 
-      const response = await fetch('/api/service-archives?page=1&pageSize=1', {
+      const response = await fetch('/api/health-archives?page=1&pageSize=1', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -232,7 +232,7 @@ export default function HealthPage() {
       const token = localStorage.getItem('token');
 
       const genResponse = await fetch(
-        '/api/service-archives/generate-customer-no',
+        '/api/health-archives/generate-customer-no',
         {
           method: 'POST',
           headers: {
@@ -248,7 +248,7 @@ export default function HealthPage() {
       if (genResult.code === 0) {
         const customerNo = genResult.data.customerNo;
 
-        const createResponse = await fetch('/api/service-archives', {
+        const createResponse = await fetch('/api/health-archives', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -306,7 +306,7 @@ export default function HealthPage() {
       const token = localStorage.getItem('token');
 
       const listResponse = await fetch(
-        `/api/service-archives?customerNo=${data.customerNo}`,
+        `/api/health-archives?customerNo=${data.customerNo}`,
         {
           method: 'GET',
           headers: {
@@ -322,7 +322,7 @@ export default function HealthPage() {
       if (listResult.code === 0 && listResult.data.list.length > 0) {
         const archiveId = listResult.data.list[0].id;
 
-        const response = await fetch(`/api/service-archives/${archiveId}`, {
+        const response = await fetch(`/api/health-archives/${archiveId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',

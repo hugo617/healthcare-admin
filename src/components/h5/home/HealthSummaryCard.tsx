@@ -27,9 +27,16 @@ export function HealthSummaryCard() {
   const loadTherapyCount = async () => {
     try {
       const token = localStorage.getItem('token');
-      // 获取服务档案
-      const archiveResponse = await fetch(
-        '/api/service-archives?page=1&pageSize=1',
+
+      if (!token) {
+        console.warn('未找到认证 token');
+        setIsLoading(false);
+        return;
+      }
+
+      // 直接获取当前用户的所有服务记录
+      const recordsResponse = await fetch(
+        '/api/service-records?page=1&pageSize=1000',
         {
           headers: {
             Authorization: `Bearer ${token}`
@@ -37,48 +44,45 @@ export function HealthSummaryCard() {
         }
       );
 
-      if (archiveResponse.ok) {
-        const archiveData = await archiveResponse.json();
-        if (archiveData.data?.list?.length > 0) {
-          const archive = archiveData.data.list[0];
-          // 获取该档案的服务记录数
-          const recordsResponse = await fetch(
-            `/api/service-records/archive/${archive.id}`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`
-              }
-            }
-          );
-
-          if (recordsResponse.ok) {
-            const recordsData = await recordsResponse.json();
-            const records = recordsData.data?.records || [];
-            const count = records.length;
-            setTherapyCount(count);
-
-            // 计算本周新增次数
-            const now = new Date();
-            const dayOfWeek = now.getDay();
-            const weekStart = new Date(now);
-            weekStart.setDate(
-              now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1)
-            );
-            weekStart.setHours(0, 0, 0, 0);
-
-            const weekEnd = new Date(weekStart);
-            weekEnd.setDate(weekStart.getDate() + 6);
-            weekEnd.setHours(23, 59, 59, 999);
-
-            const weeklyCount = records.filter((record: any) => {
-              const recordDate = new Date(record.serviceDate);
-              return recordDate >= weekStart && recordDate <= weekEnd;
-            }).length;
-
-            setWeeklyNewCount(weeklyCount);
-          }
-        }
+      if (!recordsResponse.ok) {
+        console.error(
+          'API 请求失败:',
+          recordsResponse.status,
+          recordsResponse.statusText
+        );
+        const errorText = await recordsResponse.text();
+        console.error('错误详情:', errorText);
+        setIsLoading(false);
+        return;
       }
+
+      const recordsData = await recordsResponse.json();
+      console.log('服务记录响应:', recordsData);
+
+      const records = recordsData.data?.list || [];
+      const count = records.length;
+      console.log('理疗次数:', count);
+      setTherapyCount(count);
+
+      // 计算本周新增次数
+      const now = new Date();
+      const dayOfWeek = now.getDay();
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+      weekStart.setHours(0, 0, 0, 0);
+
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      weekEnd.setHours(23, 59, 59, 999);
+
+      const weeklyCount = records.filter((record: any) => {
+        // serviceDate 格式为 "YYYY/MM/DD"，需要转换为 Date 对象
+        const recordDate = new Date(record.serviceDate);
+        return recordDate >= weekStart && recordDate <= weekEnd;
+      }).length;
+
+      console.log('本周新增次数:', weeklyCount);
+      setWeeklyNewCount(weeklyCount);
     } catch (error) {
       console.error('加载理疗次数失败:', error);
     } finally {

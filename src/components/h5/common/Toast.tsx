@@ -144,7 +144,7 @@ interface ToastItem {
 }
 
 let toastItems: ToastItem[] = [];
-let listeners: Set<(items: ToastItem[]) => void> = new Set();
+const listeners: Set<(items: ToastItem[]) => void> = new Set();
 
 function notifyListeners() {
   listeners.forEach((listener) => listener([...toastItems]));

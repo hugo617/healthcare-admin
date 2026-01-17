@@ -1,22 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { serviceArchives } from '@/db/schema';
+import { healthArchives } from '@/db/schema';
 import { eq, and, gte, lte, like, desc, sql } from 'drizzle-orm';
 import {
-  serviceArchiveQuerySchema,
-  createServiceArchiveSchema
-} from '@/lib/validators/service-archive';
+  healthArchiveQuerySchema,
+  createHealthArchiveSchema
+} from '@/lib/validators/health-archive';
 import { successResponse, errorResponse } from '@/service/response';
 import { auth } from '@/lib/auth';
 import { generateCustomerNo } from '@/lib/utils/customer-no';
 import {
-  serializeServiceArchive,
-  serializeServiceArchiveList
+  serializeHealthArchive,
+  serializeHealthArchiveList
 } from '@/lib/utils/serialize';
 
 /**
- * GET /api/service-archives
- * 获取当前登录用户的服务档案列表
+ * GET /api/health-archives
+ * 获取当前登录用户的健康档案列表
  */
 export async function GET(request: NextRequest) {
   try {
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     const query = Object.fromEntries(searchParams.entries());
 
     // 3. 验证查询参数
-    const validatedQuery = serviceArchiveQuerySchema.parse(query);
+    const validatedQuery = healthArchiveQuerySchema.parse(query);
 
     const {
       page = 1,
@@ -48,29 +48,29 @@ export async function GET(request: NextRequest) {
 
     // 4. 构建查询条件 - 必须包含user_id过滤
     const conditions = [
-      eq(serviceArchives.userId, session.user.id), // 核心: 只查询当前用户的档案
-      eq(serviceArchives.isDeleted, false),
-      status ? eq(serviceArchives.status, status as any) : undefined
+      eq(healthArchives.userId, session.user.id), // 核心: 只查询当前用户的档案
+      eq(healthArchives.isDeleted, false),
+      status ? eq(healthArchives.status, status as any) : undefined
     ].filter(Boolean);
 
     // 客户编号模糊搜索
     if (customerNo) {
-      conditions.push(like(serviceArchives.customerNo, `%${customerNo}%`));
+      conditions.push(like(healthArchives.customerNo, `%${customerNo}%`));
     }
 
     // 姓名搜索(在JSONB中)
     if (name) {
       conditions.push(
-        sql`${serviceArchives.basicInfo}->>'name' ILIKE ${`%${name}%`}`
+        sql`${healthArchives.basicInfo}->>'name' ILIKE ${`%${name}%`}`
       );
     }
 
     // 日期范围
     if (startDate) {
-      conditions.push(gte(serviceArchives.createdAt, new Date(startDate)));
+      conditions.push(gte(healthArchives.createdAt, new Date(startDate)));
     }
     if (endDate) {
-      conditions.push(lte(serviceArchives.createdAt, new Date(endDate)));
+      conditions.push(lte(healthArchives.createdAt, new Date(endDate)));
     }
 
     // 5. 查询总数
@@ -78,21 +78,21 @@ export async function GET(request: NextRequest) {
       .select({
         count: sql<number>`COUNT(*)`
       })
-      .from(serviceArchives)
+      .from(healthArchives)
       .where(and(...conditions));
 
     // 6. 查询分页数据
     const offset = (page - 1) * pageSize;
     const list = await db
       .select()
-      .from(serviceArchives)
+      .from(healthArchives)
       .where(and(...conditions))
-      .orderBy(desc(serviceArchives.createdAt))
+      .orderBy(desc(healthArchives.createdAt))
       .limit(pageSize)
       .offset(offset);
 
     // 7. 序列化数据（转换BigInt等）
-    const serializedList = serializeServiceArchiveList(list);
+    const serializedList = serializeHealthArchiveList(list);
 
     // 8. 返回结果
     return successResponse({
@@ -103,14 +103,14 @@ export async function GET(request: NextRequest) {
       totalPages: Math.ceil(Number(count) / pageSize)
     });
   } catch (error: any) {
-    console.error('查询服务档案列表失败:', error);
+    console.error('查询健康档案列表失败:', error);
     return errorResponse(error.message || '查询失败');
   }
 }
 
 /**
- * POST /api/service-archives
- * 创建新的服务档案
+ * POST /api/health-archives
+ * 创建新的健康档案
  */
 export async function POST(request: NextRequest) {
   try {
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // 3. 验证数据
-    const validatedData = createServiceArchiveSchema.parse(body);
+    const validatedData = createHealthArchiveSchema.parse(body);
 
     // 4. 生成客户编号(如果没有提供)
     const customerNo =
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
 
     // 5. 创建档案 - 使用当前用户的user_id
     const [newArchive] = await db
-      .insert(serviceArchives)
+      .insert(healthArchives)
       .values({
         ...validatedData,
         userId: session.user.id, // 核心: 档案属于当前用户
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
       .returning();
 
     // 6. 序列化数据并返回
-    const serializedArchive = serializeServiceArchive(newArchive);
+    const serializedArchive = serializeHealthArchive(newArchive);
     return NextResponse.json(
       {
         code: 0,
@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.error('创建服务档案失败:', error);
+    console.error('创建健康档案失败:', error);
     return errorResponse(error.message || '创建失败');
   }
 }

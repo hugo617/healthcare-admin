@@ -502,7 +502,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     relationName: 'impersonator'
   }),
   auditLogs: many(systemLogs),
-  serviceArchives: many(serviceArchives),
+  healthArchives: many(healthArchives),
   serviceRecords: many(serviceRecords),
   healthRecords: many(healthRecords),
   serviceAppointments: many(serviceAppointments),
@@ -568,7 +568,7 @@ export const tenantsRelations = relations(tenants, ({ many }) => ({
   verificationCodes: many(verificationCodes),
   permissionTemplates: many(permissionTemplates),
   templatePermissions: many(templatePermissions),
-  serviceArchives: many(serviceArchives),
+  healthArchives: many(healthArchives),
   serviceRecords: many(serviceRecords),
   healthRecords: many(healthRecords),
   serviceAppointments: many(serviceAppointments),
@@ -802,9 +802,9 @@ export interface TenantStatistics {
   rolePermissionCount: number;
 }
 
-// 客户服务档案表
-export const serviceArchives = pgTable(
-  'service_archives',
+// 健康档案表
+export const healthArchives = pgTable(
+  'health_archives',
   {
     id: bigint('id', { mode: 'bigint' })
       .primaryKey()
@@ -829,41 +829,41 @@ export const serviceArchives = pgTable(
     isDeleted: boolean('is_deleted').default(false)
   },
   (t) => ({
-    userCustomerUnique: unique('service_archives_user_customer_unique').on(
+    userCustomerUnique: unique('health_archives_user_customer_unique').on(
       t.userId,
       t.customerNo
     ),
-    userIdIdx: index('idx_service_archives_user_id').on(t.userId),
-    customerNoIdx: index('idx_service_archives_customer_no').on(t.customerNo),
-    statusIdx: index('idx_service_archives_status').on(t.status),
-    createdAtIdx: index('idx_service_archives_created_at').on(t.createdAt),
-    isDeletedIdx: index('idx_service_archives_is_deleted').on(t.isDeleted)
+    userIdIdx: index('idx_health_archives_user_id').on(t.userId),
+    customerNoIdx: index('idx_health_archives_customer_no').on(t.customerNo),
+    statusIdx: index('idx_health_archives_status').on(t.status),
+    createdAtIdx: index('idx_health_archives_created_at').on(t.createdAt),
+    isDeletedIdx: index('idx_health_archives_is_deleted').on(t.isDeleted)
   })
 );
 
-// 服务档案关系定义
-export const serviceArchivesRelations = relations(
-  serviceArchives,
+// 健康档案关系定义
+export const healthArchivesRelations = relations(
+  healthArchives,
   ({ one, many }) => ({
     user: one(users, {
-      fields: [serviceArchives.userId],
+      fields: [healthArchives.userId],
       references: [users.id]
     }),
     createdByUser: one(users, {
-      fields: [serviceArchives.createdBy],
+      fields: [healthArchives.createdBy],
       references: [users.id]
     }),
     updatedByUser: one(users, {
-      fields: [serviceArchives.updatedBy],
+      fields: [healthArchives.updatedBy],
       references: [users.id]
     }),
     serviceRecords: many(serviceRecords)
   })
 );
 
-// 服务档案类型
-export type ServiceArchive = typeof serviceArchives.$inferSelect;
-export type NewServiceArchive = typeof serviceArchives.$inferInsert;
+// 健康档案类型
+export type HealthArchive = typeof healthArchives.$inferSelect;
+export type NewHealthArchive = typeof healthArchives.$inferInsert;
 
 // 服务记录表
 export const serviceRecords = pgTable(
@@ -877,7 +877,7 @@ export const serviceRecords = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     archiveId: bigint('archive_id', { mode: 'bigint' })
       .notNull()
-      .references(() => serviceArchives.id, { onDelete: 'cascade' }),
+      .references(() => healthArchives.id, { onDelete: 'cascade' }),
     count: integer('count').notNull(),
     serviceDate: varchar('service_date', { length: 10 }).notNull(),
     bloodPressure: jsonb('blood_pressure').default('{}'),
@@ -914,9 +914,9 @@ export const serviceRecordsRelations = relations(serviceRecords, ({ one }) => ({
     fields: [serviceRecords.userId],
     references: [users.id]
   }),
-  archive: one(serviceArchives, {
+  archive: one(healthArchives, {
     fields: [serviceRecords.archiveId],
-    references: [serviceArchives.id]
+    references: [healthArchives.id]
   }),
   createdByUser: one(users, {
     fields: [serviceRecords.createdBy],

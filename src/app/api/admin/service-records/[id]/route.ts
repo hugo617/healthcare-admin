@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { hasPermission } from '@/lib/permissions';
-import { PERMISSIONS } from '@/lib/permissions';
+import { hasPermission } from '@/lib/permissions-server';
+import { PERMISSIONS } from '@/lib/permissions-server';
 import { db } from '@/db';
 import { serviceRecords } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -61,12 +61,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       id: record.id.toString(),
       archiveId: record.archiveId.toString(),
       archive:
-        record.archive && typeof record.archive.id === 'bigint'
+        record.archive && !Array.isArray(record.archive)
           ? {
               ...record.archive,
-              id: record.archive.id.toString()
+              id: (record.archive.id as any).toString()
             }
-          : record.archive
+          : null
     };
 
     return NextResponse.json({

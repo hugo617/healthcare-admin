@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { serviceRecords, serviceArchives } from '@/db/schema';
+import { serviceRecords, healthArchives } from '@/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
 import { serializeServiceRecordList } from '@/lib/utils/serialize';
@@ -28,12 +28,12 @@ export async function GET(
     // 验证档案是否存在且属于当前用户
     const [archive] = await db
       .select()
-      .from(serviceArchives)
+      .from(healthArchives)
       .where(
         and(
-          eq(serviceArchives.id, archiveIdBigInt),
-          eq(serviceArchives.userId, session.user.id),
-          eq(serviceArchives.isDeleted, false)
+          eq(healthArchives.id, archiveIdBigInt),
+          eq(healthArchives.userId, session.user.id),
+          eq(healthArchives.isDeleted, false)
         )
       )
       .limit(1);
@@ -42,7 +42,7 @@ export async function GET(
       return NextResponse.json(
         {
           code: 404,
-          message: '服务档案不存在或无权访问'
+          message: '健康档案不存在或无权访问'
         },
         { status: 404 }
       );

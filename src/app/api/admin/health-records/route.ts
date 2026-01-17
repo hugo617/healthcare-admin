@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { db } from '@/db';
 import { healthRecords } from '@/db/schema';
-import { eq, desc, and, sql, count } from 'drizzle-orm';
+import { eq, desc, and, sql, count, like } from 'drizzle-orm';
 
 /**
  * GET /api/admin/health-records
@@ -48,6 +48,20 @@ export async function GET(request: NextRequest) {
     const total = totalResult[0]?.count || 0;
 
     // 查询数据(包含关联)
+    // 根据 sortBy 字段动态排序
+    const orderByClause =
+      sortOrder === 'asc'
+        ? sortBy === 'recordDate'
+          ? [healthRecords.recordDate]
+          : sortBy === 'updatedAt'
+            ? [healthRecords.updatedAt]
+            : [healthRecords.createdAt]
+        : sortBy === 'recordDate'
+          ? [desc(healthRecords.recordDate)]
+          : sortBy === 'updatedAt'
+            ? [desc(healthRecords.updatedAt)]
+            : [desc(healthRecords.createdAt)];
+
     const records = await db.query.healthRecords.findMany({
       where: and(...conditions),
       with: {
@@ -61,10 +75,7 @@ export async function GET(request: NextRequest) {
           }
         }
       },
-      orderBy:
-        sortOrder === 'asc'
-          ? [healthRecords[sortBy] || healthRecords.recordDate]
-          : [desc(healthRecords[sortBy] || healthRecords.recordDate)],
+      orderBy: orderByClause,
       limit,
       offset: (page - 1) * limit
     });
@@ -158,8 +169,8 @@ export async function POST(request: NextRequest) {
         weight: weight || {},
         temperature: temperature || {},
         notes: notes || '',
-        createdBy: currentUser.id,
-        updatedBy: currentUser.id
+        createdBy: currentUser?.id || parseInt(userId),
+        updatedBy: currentUser?.id || parseInt(userId)
       })
       .returning();
 

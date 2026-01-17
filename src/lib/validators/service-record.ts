@@ -92,7 +92,7 @@ export const serviceRecordQuerySchema = z.object({
   pageSize: z.coerce
     .number()
     .min(1, '每页数量不能小于1')
-    .max(100, '每页数量不能超过100')
+    .max(10000, '每页数量不能超过10000')
     .default(10),
   archiveId: z.string().optional(),
   startDate: z

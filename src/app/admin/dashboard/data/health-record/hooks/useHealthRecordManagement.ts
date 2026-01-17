@@ -1,29 +1,29 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import {
-  HealthRecord,
-  HealthRecordFormData,
-  HealthRecordStatistics,
+  HealthArchive,
+  HealthArchiveFormData,
+  HealthArchiveStatistics,
   PaginationInfo
 } from '../types';
 import { DEFAULT_PAGINATION, MESSAGES } from '../constants';
 import { HealthRecordAPI } from '@/service/api/health-record';
 
 /**
- * 健康记录管理业务逻辑 Hook
+ * 健康档案管理业务逻辑 Hook
  */
 export function useHealthRecordManagement() {
-  const [records, setRecords] = useState<HealthRecord[]>([]);
+  const [records, setRecords] = useState<HealthArchive[]>([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] =
     useState<PaginationInfo>(DEFAULT_PAGINATION);
   const [statistics, setStatistics] = useState<
-    HealthRecordStatistics | undefined
+    HealthArchiveStatistics | undefined
   >();
   const [selectedRecords, setSelectedRecords] = useState<string[]>([]);
 
   /**
-   * 获取健康记录列表
+   * 获取健康档案列表
    */
   const fetchRecords = useCallback(async (filters: any) => {
     try {
@@ -35,12 +35,12 @@ export function useHealthRecordManagement() {
         setRecords(res.data);
         setPagination(res.pagination || DEFAULT_PAGINATION);
       } else {
-        toast.error(res.message || '获取健康记录失败');
+        toast.error(res.message || '获取健康档案失败');
         setRecords([]);
       }
     } catch (error) {
-      console.error('获取健康记录失败:', error);
-      toast.error('获取健康记录失败');
+      console.error('获取健康档案失败:', error);
+      toast.error('获取健康档案失败');
       setRecords([]);
     } finally {
       setLoading(false);
@@ -63,12 +63,12 @@ export function useHealthRecordManagement() {
   }, []);
 
   /**
-   * 创建健康记录
+   * 创建健康档案
    */
   const createRecord = useCallback(
-    async (data: HealthRecordFormData): Promise<boolean> => {
+    async (data: HealthArchiveFormData): Promise<boolean> => {
       try {
-        const res = await HealthRecordAPI.createHealthRecord(data);
+        const res = await HealthRecordAPI.createHealthRecord(data as any);
 
         if (res.success) {
           toast.success(MESSAGES.SUCCESS.CREATE);
@@ -78,7 +78,7 @@ export function useHealthRecordManagement() {
           return false;
         }
       } catch (error) {
-        console.error('创建健康记录失败:', error);
+        console.error('创建健康档案失败:', error);
         toast.error(MESSAGES.ERROR.CREATE);
         return false;
       }
@@ -87,15 +87,15 @@ export function useHealthRecordManagement() {
   );
 
   /**
-   * 更新健康记录
+   * 更新健康档案
    */
   const updateRecord = useCallback(
     async (
       id: string,
-      data: Partial<HealthRecordFormData>
+      data: Partial<HealthArchiveFormData>
     ): Promise<boolean> => {
       try {
-        const res = await HealthRecordAPI.updateHealthRecord(id, data);
+        const res = await HealthRecordAPI.updateHealthRecord(id, data as any);
 
         if (res.success) {
           toast.success(MESSAGES.SUCCESS.UPDATE);
@@ -105,7 +105,7 @@ export function useHealthRecordManagement() {
           return false;
         }
       } catch (error) {
-        console.error('更新健康记录失败:', error);
+        console.error('更新健康档案失败:', error);
         toast.error(MESSAGES.ERROR.UPDATE);
         return false;
       }
@@ -114,7 +114,7 @@ export function useHealthRecordManagement() {
   );
 
   /**
-   * 删除健康记录
+   * 删除健康档案
    */
   const deleteRecord = useCallback(async (id: string): Promise<boolean> => {
     try {
@@ -128,14 +128,14 @@ export function useHealthRecordManagement() {
         return false;
       }
     } catch (error) {
-      console.error('删除健康记录失败:', error);
+      console.error('删除健康档案失败:', error);
       toast.error(MESSAGES.ERROR.DELETE);
       return false;
     }
   }, []);
 
   /**
-   * 批量删除健康记录
+   * 批量删除健康档案
    */
   const batchDeleteRecords = useCallback(
     async (ids: string[]): Promise<boolean> => {
@@ -143,7 +143,7 @@ export function useHealthRecordManagement() {
         const res = await HealthRecordAPI.batchDeleteHealthRecords(ids);
 
         if (res.success) {
-          toast.success(`成功删除 ${ids.length} 条健康记录`);
+          toast.success(`成功删除 ${ids.length} 条健康档案`);
           return true;
         } else {
           toast.error(res.message || '批量删除失败');

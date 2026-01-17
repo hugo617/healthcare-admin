@@ -556,7 +556,7 @@ export default function ServiceRecordPage() {
                   className='cursor-pointer border-2 border-dashed border-teal-600 p-6 text-center font-bold text-teal-600 transition-colors hover:bg-teal-50/50'
                   onClick={handleAddNew}
                 >
-                  + 填写今日服务记录 (第 {getNextCount()} 次)
+                  + 新增服务记录 (第 {getNextCount()} 次)
                 </td>
               </tr>
             </tbody>

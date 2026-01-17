@@ -4,7 +4,7 @@ import { auth } from '@/lib/auth';
 import { generateCustomerNo } from '@/lib/utils/customer-no';
 
 /**
- * POST /api/service-archives/generate-customer-no
+ * POST /api/health-archives/generate-customer-no
  * 生成新的客户编号
  */
 export async function POST(request: NextRequest) {

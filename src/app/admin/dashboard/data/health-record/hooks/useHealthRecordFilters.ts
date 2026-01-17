@@ -1,18 +1,18 @@
 import { useState, useCallback } from 'react';
-import { HealthRecordFilters } from '../types';
+import { HealthArchiveFilters } from '../types';
 import { DEFAULT_FILTERS } from '../constants';
 
 /**
- * 健康记录筛选状态管理 Hook
+ * 健康档案筛选状态管理 Hook
  */
 export function useHealthRecordFilters() {
-  const [filters, setFilters] = useState<HealthRecordFilters>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<HealthArchiveFilters>(DEFAULT_FILTERS);
 
   /**
    * 更新筛选条件
    */
   const updateFilters = useCallback(
-    (newFilters: Partial<HealthRecordFilters>) => {
+    (newFilters: Partial<HealthArchiveFilters>) => {
       setFilters((prev) => ({
         ...prev,
         ...newFilters,
@@ -42,7 +42,7 @@ export function useHealthRecordFilters() {
    * 搜索
    */
   const searchFilters = useCallback(
-    (searchParams: Partial<HealthRecordFilters>) => {
+    (searchParams: Partial<HealthArchiveFilters>) => {
       setFilters({
         ...DEFAULT_FILTERS,
         ...searchParams,
@@ -63,7 +63,7 @@ export function useHealthRecordFilters() {
    * 是否有激活的筛选条件
    */
   const hasActiveFilters = Boolean(
-    filters.search || filters.userId || filters.startDate || filters.endDate
+    filters.search || filters.status || filters.startDate || filters.endDate
   );
 
   return {

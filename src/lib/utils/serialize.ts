@@ -3,12 +3,12 @@
  * 用于处理数据库返回的数据，将BigInt等类型转换为可序列化的格式
  */
 
-import { ServiceArchive } from '@/db/schema';
+import { HealthArchive } from '@/db/schema';
 
 /**
- * 序列化服务档案对象，将BigInt字段转换为字符串
+ * 序列化健康档案对象，将BigInt字段转换为字符串
  */
-export function serializeServiceArchive(archive: any): any {
+export function serializeHealthArchive(archive: any): any {
   if (!archive) return null;
 
   return {
@@ -23,11 +23,17 @@ export function serializeServiceArchive(archive: any): any {
 }
 
 /**
- * 序列化服务档案列表
+ * 序列化健康档案列表
  */
-export function serializeServiceArchiveList(list: any[]): any[] {
-  return list.map(serializeServiceArchive);
+export function serializeHealthArchiveList(list: any[]): any[] {
+  return list.map(serializeHealthArchive);
 }
+
+/**
+ * 保留兼容性的别名
+ */
+export const serializeServiceArchive = serializeHealthArchive;
+export const serializeServiceArchiveList = serializeHealthArchiveList;
 
 /**
  * 序列化服务记录对象，将BigInt字段转换为字符串

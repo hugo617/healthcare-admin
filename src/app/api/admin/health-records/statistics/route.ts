@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { hasPermission } from '@/lib/permissions';
-import { PERMISSIONS } from '@/lib/permissions';
+import { hasPermission } from '@/lib/permissions-server';
+import { PERMISSIONS } from '@/lib/permissions-server';
 import { db } from '@/db';
-import { healthRecords, users } from '@/db/schema';
-import { eq, and, sql, count, desc, avg } from 'drizzle-orm';
+import { healthArchives, users } from '@/db/schema';
+import { eq, and, sql, count, desc } from 'drizzle-orm';
 
 /**
  * GET /api/admin/health-records/statistics
- * 获取健康记录统计信息(管理端)
+ * 获取健康档案统计信息(管理端)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -21,112 +21,46 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId');
 
     // 基础条件
-    const baseConditions = [eq(healthRecords.isDeleted, false)];
+    const baseConditions = [eq(healthArchives.isDeleted, false)];
 
     if (userId) {
-      baseConditions.push(eq(healthRecords.userId, parseInt(userId)));
+      baseConditions.push(eq(healthArchives.userId, parseInt(userId)));
     }
 
-    // 总数统计
+    // 总档案数统计
     const totalResult = await db
       .select({ count: count() })
-      .from(healthRecords)
+      .from(healthArchives)
       .where(and(...baseConditions));
 
-    // 本月统计
+    // 本月新增统计
     const thisMonth = new Date();
     thisMonth.setDate(1);
-    const thisMonthStr = thisMonth.toISOString().split('T')[0];
+    thisMonth.setHours(0, 0, 0, 0);
 
     const thisMonthResult = await db
       .select({ count: count() })
-      .from(healthRecords)
+      .from(healthArchives)
       .where(
-        and(
-          ...baseConditions,
-          sql`${healthRecords.recordDate} >= ${thisMonthStr}`
-        )
+        and(...baseConditions, sql`${healthArchives.createdAt} >= ${thisMonth}`)
       );
 
-    // 平均血压统计
-    const avgBloodPressureResult = await db
-      .select({
-        avgSystolic: avg(
-          sql`CAST(${healthRecords.bloodPressure}->>'systolic' AS INTEGER)`
-        ),
-        avgDiastolic: avg(
-          sql`CAST(${healthRecords.bloodPressure}->>'diastolic' AS INTEGER)`
-        )
-      })
-      .from(healthRecords)
-      .where(
-        and(
-          ...baseConditions,
-          sql`(${healthRecords.bloodPressure}->>'systolic') IS NOT NULL`
-        )
-      );
-
-    // 平均血糖统计
-    const avgBloodSugarResult = await db
-      .select({
-        avgValue: avg(
-          sql`CAST(${healthRecords.bloodSugar}->>'value' AS NUMERIC)`
-        )
-      })
-      .from(healthRecords)
-      .where(
-        and(
-          ...baseConditions,
-          sql`(${healthRecords.bloodSugar}->>'value') IS NOT NULL`
-        )
-      );
-
-    // 平均心率统计
-    const avgHeartRateResult = await db
-      .select({ avgValue: avg(healthRecords.heartRate) })
-      .from(healthRecords)
-      .where(
-        and(...baseConditions, sql`${healthRecords.heartRate} IS NOT NULL`)
-      );
-
-    // 平均体重统计
-    const avgWeightResult = await db
-      .select({
-        avgValue: avg(sql`CAST(${healthRecords.weight}->>'value' AS NUMERIC)`)
-      })
-      .from(healthRecords)
-      .where(
-        and(
-          ...baseConditions,
-          sql`(${healthRecords.weight}->>'value') IS NOT NULL`
-        )
-      );
-
-    // 获取最新记录
-    const latestRecord = await db.query.healthRecords.findFirst({
-      where: and(...baseConditions),
-      orderBy: [desc(healthRecords.recordDate)],
-      with: {
-        user: {
-          columns: {
-            id: true,
-            username: true,
-            realName: true
-          }
-        }
-      }
-    });
+    // 活跃档案数统计
+    const activeResult = await db
+      .select({ count: count() })
+      .from(healthArchives)
+      .where(and(...baseConditions, eq(healthArchives.status, 'active')));
 
     // 获取按用户分组的统计
     const byUserResult = await db
       .select({
-        userId: healthRecords.userId,
+        userId: healthArchives.userId,
         count: count(),
-        lastRecordDate: sql<string>`MAX(${healthRecords.recordDate})`
+        lastCreatedDate: sql<string>`MAX(${healthArchives.createdAt})`
       })
-      .from(healthRecords)
+      .from(healthArchives)
       .where(and(...baseConditions))
-      .groupBy(healthRecords.userId)
+      .groupBy(healthArchives.userId)
       .orderBy(desc(count()))
       .limit(10);
 
@@ -145,53 +79,32 @@ export async function GET(request: NextRequest) {
         return {
           userId: item.userId,
           userName: userRecord?.realName || userRecord?.username || '',
-          recordCount: item.count || 0,
-          lastRecordDate: item.lastRecordDate || ''
+          archiveCount: item.count || 0,
+          lastCreatedDate: item.lastCreatedDate || ''
         };
       })
     );
 
-    const total = totalResult[0]?.count || 0;
-    const thisMonthCount = thisMonthResult[0]?.count || 0;
-
-    // 转换 BigInt 为字符串以支持 JSON 序列化
-    const serializedLatestRecord = latestRecord
-      ? {
-          ...latestRecord,
-          id: latestRecord.id.toString()
-        }
-      : null;
-
-    // 处理 avg 结果（SQL avg() 返回字符串类型）
-    const avgSystolic = Number(avgBloodPressureResult[0]?.avgSystolic || 0);
-    const avgDiastolic = Number(avgBloodPressureResult[0]?.avgDiastolic || 0);
-    const avgBloodSugar = Number(avgBloodSugarResult[0]?.avgValue || 0);
-    const avgHeartRate = Number(avgHeartRateResult[0]?.avgValue || 0);
-    const avgWeight = Number(avgWeightResult[0]?.avgValue || 0);
+    const total = Number(totalResult[0]?.count || 0);
+    const thisMonthCount = Number(thisMonthResult[0]?.count || 0);
+    const activeCount = Number(activeResult[0]?.count || 0);
 
     return NextResponse.json({
       success: true,
       data: {
         overview: {
-          totalRecords: total,
-          thisMonthRecords: thisMonthCount,
-          avgBloodPressure: {
-            systolic: Math.round(avgSystolic),
-            diastolic: Math.round(avgDiastolic)
-          },
-          avgBloodSugar: Math.round(avgBloodSugar * 10) / 10,
-          avgHeartRate: Math.round(avgHeartRate),
-          avgWeight: Math.round(avgWeight * 10) / 10
+          totalArchives: total,
+          thisMonthArchives: thisMonthCount,
+          activeArchives: activeCount
         },
-        latestRecord: serializedLatestRecord,
         byUser
       }
     });
   } catch (error) {
-    console.error('获取健康记录统计失败:', error);
+    console.error('获取健康档案统计失败:', error);
     return NextResponse.json(
       {
-        error: '获取健康记录统计失败',
+        error: '获取健康档案统计失败',
         message: error instanceof Error ? error.message : '未知错误'
       },
       { status: 500 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { serviceRecords, serviceArchives } from '@/db/schema';
+import { serviceRecords, healthArchives } from '@/db/schema';
 import { eq, and, gte, lte, desc, sql } from 'drizzle-orm';
 import {
   createServiceRecordSchema,
@@ -158,22 +158,22 @@ export async function POST(request: NextRequest) {
       // 如果没有提供archiveId，则查询用户的默认档案(最新的)
       const [defaultArchive] = await db
         .select()
-        .from(serviceArchives)
+        .from(healthArchives)
         .where(
           and(
-            eq(serviceArchives.userId, session.user.id),
-            eq(serviceArchives.isDeleted, false),
-            eq(serviceArchives.status, 'active')
+            eq(healthArchives.userId, session.user.id),
+            eq(healthArchives.isDeleted, false),
+            eq(healthArchives.status, 'active')
           )
         )
-        .orderBy(desc(serviceArchives.createdAt))
+        .orderBy(desc(healthArchives.createdAt))
         .limit(1);
 
       if (!defaultArchive) {
         return NextResponse.json(
           {
             code: 400,
-            message: '未找到服务档案，请先创建档案'
+            message: '未找到健康档案，请先创建档案'
           },
           { status: 400 }
         );
@@ -185,12 +185,12 @@ export async function POST(request: NextRequest) {
     // 5. 验证档案是否存在且属于当前用户
     const [archive] = await db
       .select()
-      .from(serviceArchives)
+      .from(healthArchives)
       .where(
         and(
-          eq(serviceArchives.id, BigInt(archiveId)),
-          eq(serviceArchives.userId, session.user.id),
-          eq(serviceArchives.isDeleted, false)
+          eq(healthArchives.id, BigInt(archiveId)),
+          eq(healthArchives.userId, session.user.id),
+          eq(healthArchives.isDeleted, false)
         )
       )
       .limit(1);
@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           code: 404,
-          message: '服务档案不存在或无权访问'
+          message: '健康档案不存在或无权访问'
         },
         { status: 404 }
       );

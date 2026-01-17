@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { X, GripVertical } from 'lucide-react';
-import { borderRadius, duration, zIndex } from './theme';
+import { borderRadius, duration, easing, zIndex } from './theme';
 
 interface BottomSheetProps {
   open: boolean;
