@@ -113,3 +113,18 @@ input, button, textarea {
 .content-container {
   padding-bottom: 30px;
 }
+
+/* 隐藏 Next.js Dev Tools 徽章（仅在 H5 页面） - 使用多种选择器确保生效 */
+html body div[data-next-badge="true"],
+html body button[data-nextjs-dev-tools-button="true"],
+div[data-next-badge] > div > button[data-nextjs-dev-tools-button],
+html:has(body) div[data-next-badge] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  position: absolute !important;
+  left: -9999px !important;
+}

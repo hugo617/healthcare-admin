@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Nunito_Sans, Varela_Round } from 'next/font/google';
+import { HideDevToolsBadge } from '@/components/h5/common/HideDevTools';
 import './globals.css';
 
 const nunitoSans = Nunito_Sans({
@@ -38,6 +39,7 @@ export default function H5Layout({ children }: { children: React.ReactNode }) {
     <div
       className={`${nunitoSans.variable} ${varelaRound.variable} min-h-screen bg-gray-50 font-sans antialiased`}
     >
+      <HideDevToolsBadge />
       {children}
     </div>
   );
