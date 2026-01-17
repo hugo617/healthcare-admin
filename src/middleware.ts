@@ -201,9 +201,13 @@ export async function middleware(request: NextRequest) {
         response.headers.set('x-tenant-code', tenantCode);
       }
 
-      response.headers.set('x-user-id', user.id.toString());
-      response.headers.set('x-user-email', user.email);
-      response.headers.set('x-user-tenant-id', user.tenantId.toString());
+      const userId = (user as any).id;
+      const userEmail = (user as any).email;
+      const userTenantId = (user as any).tenantId;
+
+      response.headers.set('x-user-id', userId?.toString() || '');
+      response.headers.set('x-user-email', userEmail || '');
+      response.headers.set('x-user-tenant-id', userTenantId?.toString() || '');
       response.headers.set('x-user-system', system);
 
       return response;

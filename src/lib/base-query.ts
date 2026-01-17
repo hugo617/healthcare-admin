@@ -214,7 +214,7 @@ export class UserQuery extends BaseQuery {
       let query = db.select().from(users);
 
       // 应用租户过滤
-      query = query.where(eq(users.tenantId, tenantId));
+      query = query.where(eq(users.tenantId, tenantId)) as typeof query;
 
       // 应用搜索
       if (options.keyword) {
@@ -227,7 +227,7 @@ export class UserQuery extends BaseQuery {
               ${ilike(users.email, searchTerm)}
             )`
           )
-        );
+        ) as typeof query;
       }
 
       // 应用过滤
@@ -244,12 +244,12 @@ export class UserQuery extends BaseQuery {
                 return null;
             }
           })
-          .filter(Boolean);
+          .filter((c): c is Exclude<typeof c, null> => c !== null);
 
         if (filterConditions.length > 0) {
           query = query.where(
             and(eq(users.tenantId, tenantId), ...filterConditions)
-          );
+          ) as typeof query;
         }
       }
 
@@ -257,8 +257,8 @@ export class UserQuery extends BaseQuery {
       const total = await this.getTotal(users);
 
       // 应用排序和分页
-      query = this.applySorting(query, options);
-      query = this.applyPagination(query, options);
+      query = this.applySorting(query, options) as typeof query;
+      query = this.applyPagination(query, options) as typeof query;
 
       const data = await query;
       return this.buildPaginatedResult(data, total, options);
@@ -318,22 +318,18 @@ export class UserQuery extends BaseQuery {
     excludeId?: number
   ): Promise<boolean> {
     return this.withTenant(async (tenantId) => {
-      let query = db
-        .select({ id: users.id })
-        .from(users)
-        .where(and(eq(users.email, email), eq(users.tenantId, tenantId)));
+      const conditions = [eq(users.email, email), eq(users.tenantId, tenantId)];
 
       if (excludeId) {
-        query = query.where(
-          and(
-            eq(users.email, email),
-            eq(users.tenantId, tenantId),
-            sql`${users.id} != ${excludeId}`
-          )
-        );
+        conditions.push(sql`${users.id} != ${excludeId}`);
       }
 
-      const result = await query.limit(1);
+      const result = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(and(...conditions))
+        .limit(1);
+
       return result.length > 0;
     });
   }
@@ -346,22 +342,21 @@ export class UserQuery extends BaseQuery {
     excludeId?: number
   ): Promise<boolean> {
     return this.withTenant(async (tenantId) => {
-      let query = db
-        .select({ id: users.id })
-        .from(users)
-        .where(and(eq(users.username, username), eq(users.tenantId, tenantId)));
+      const conditions = [
+        eq(users.username, username),
+        eq(users.tenantId, tenantId)
+      ];
 
       if (excludeId) {
-        query = query.where(
-          and(
-            eq(users.username, username),
-            eq(users.tenantId, tenantId),
-            sql`${users.id} != ${excludeId}`
-          )
-        );
+        conditions.push(sql`${users.id} != ${excludeId}`);
       }
 
-      const result = await query.limit(1);
+      const result = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(and(...conditions))
+        .limit(1);
+
       return result.length > 0;
     });
   }
@@ -395,7 +390,7 @@ export class RoleQuery extends BaseQuery {
       let query = db.select().from(roles);
 
       // 应用租户过滤
-      query = query.where(eq(roles.tenantId, tenantId));
+      query = query.where(eq(roles.tenantId, tenantId)) as typeof query;
 
       // 应用搜索
       if (options.keyword) {
@@ -408,7 +403,7 @@ export class RoleQuery extends BaseQuery {
               ${ilike(roles.description, searchTerm)}
             )`
           )
-        );
+        ) as typeof query;
       }
 
       // 获取总数
@@ -417,8 +412,8 @@ export class RoleQuery extends BaseQuery {
       // 应用排序和分页
       const { sortBy = 'createdAt', sortOrder = 'asc' } = options;
       const orderFn = sortOrder === 'asc' ? asc : desc;
-      query = query.orderBy(orderFn(roles.createdAt));
-      query = this.applyPagination(query, options);
+      query = query.orderBy(orderFn(roles.createdAt)) as typeof query;
+      query = this.applyPagination(query, options) as typeof query;
 
       const data = await query;
       return this.buildPaginatedResult(data, total, options);
@@ -475,12 +470,14 @@ export class TenantQuery extends BaseQuery {
           ${ilike(tenants.name, searchTerm)} OR
           ${ilike(tenants.code, searchTerm)}
         )`
-      );
+      ) as typeof query;
     }
 
     // 应用过滤
     if (options.filters?.status) {
-      query = query.where(eq(tenants.status, options.filters.status));
+      query = query.where(
+        eq(tenants.status, options.filters.status)
+      ) as typeof query;
     }
 
     // 获取总数
@@ -489,10 +486,9 @@ export class TenantQuery extends BaseQuery {
     // 应用排序和分页
     const { sortBy = 'createdAt', sortOrder = 'desc' } = options;
     const orderFn = sortOrder === 'asc' ? asc : desc;
-    query = query.orderBy(
-      orderFn(tenants[sortBy as keyof typeof tenants] || tenants.createdAt)
-    );
-    query = this.applyPagination(query, options);
+    const sortColumn = (tenants as any)[sortBy] || tenants.createdAt;
+    query = query.orderBy(orderFn(sortColumn)) as typeof query;
+    query = this.applyPagination(query, options) as typeof query;
 
     const data = await query;
     return this.buildPaginatedResult(data, total, options);
@@ -551,17 +547,18 @@ export class TenantQuery extends BaseQuery {
         GROUP BY t.id, t.name, t.code, t.status, t.created_at
       `);
 
-      if (result.length > 0) {
+      const rows = result as unknown as any[];
+      if (rows.length > 0) {
         return {
-          id: BigInt(result[0].id),
-          name: result[0].name,
-          code: result[0].code,
-          status: result[0].status,
-          createdAt: new Date(result[0].createdAt),
-          userCount: Number(result[0].userCount),
-          roleCount: Number(result[0].roleCount),
-          permissionCount: Number(result[0].permissionCount),
-          rolePermissionCount: Number(result[0].rolePermissionCount)
+          id: BigInt(rows[0].id),
+          name: rows[0].name,
+          code: rows[0].code,
+          status: rows[0].status,
+          createdAt: new Date(rows[0].createdAt),
+          userCount: Number(rows[0].userCount),
+          roleCount: Number(rows[0].roleCount),
+          permissionCount: Number(rows[0].permissionCount),
+          rolePermissionCount: Number(rows[0].rolePermissionCount)
         };
       }
 

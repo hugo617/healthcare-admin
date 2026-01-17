@@ -50,7 +50,11 @@ export async function requirePermission(
   }
 
   // 检查基础权限
-  const hasPermission = await checkUserPermission(session.user.id, permissionCode, session.user.tenantId);
+  const hasPermission = await checkUserPermission(
+    session.user.id,
+    permissionCode,
+    BigInt(session.user.tenantId)
+  );
 
   if (!hasPermission) {
     throw new ForbiddenError(`Permission required: ${permissionCode}`);
@@ -65,7 +69,9 @@ export async function requirePermission(
     );
 
     if (!hasDataPermission) {
-      throw new ForbiddenError(`Data access denied for resource: ${resourceId}`);
+      throw new ForbiddenError(
+        `Data access denied for resource: ${resourceId}`
+      );
     }
   }
 }
@@ -104,10 +110,9 @@ async function checkUserPermission(
       })
       .from(users)
       .innerJoin(roles, eq(users.roleId, roles.id))
-      .where(and(
-        eq(users.id, userId),
-        eq(users.tenantId, currentTenantId)
-      ))
+      .where(
+        and(eq(users.id, userId), eq(users.tenantId, Number(currentTenantId)))
+      )
       .limit(1);
 
     const userRole = await userRoleQuery;
@@ -125,15 +130,17 @@ async function checkUserPermission(
       })
       .from(rolePermissions)
       .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-      .where(and(
-        eq(rolePermissions.roleId, roleId),
-        eq(rolePermissions.tenantId, currentTenantId),
-        eq(permissions.status, 'active')
-      ));
+      .where(
+        and(
+          eq(rolePermissions.roleId, roleId),
+          eq(rolePermissions.tenantId, Number(currentTenantId)),
+          eq(permissions.status, 'active')
+        )
+      );
 
     const userPermissions = await permissionQuery;
 
-    return userPermissions.some(p => p.permissionCode === permissionCode);
+    return userPermissions.some((p) => p.permissionCode === permissionCode);
   } catch (error) {
     console.error('Error checking user permission:', error);
     return false;
@@ -239,13 +246,11 @@ export async function getUserPermissions(userId: number): Promise<string[]> {
       })
       .from(rolePermissions)
       .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-      .where(
-        eq(rolePermissions.roleId, roleId)
-      );
+      .where(eq(rolePermissions.roleId, roleId));
 
     const userPermissions = await permissionQuery;
 
-    return userPermissions.map(p => p.permissionCode);
+    return userPermissions.map((p) => p.permissionCode);
   } catch (error) {
     console.error('Error getting user permissions:', error);
     return [];

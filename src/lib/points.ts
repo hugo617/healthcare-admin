@@ -223,7 +223,7 @@ export async function checkIn(
       alreadyCheckedIn: true,
       points: 0,
       experience: 0,
-      streak: currentPoints.checkInStreak,
+      streak: currentPoints.checkInStreak || 0,
       levelUp: false,
       messages: ['今天已经签到过了！']
     };
@@ -235,7 +235,9 @@ export async function checkIn(
   const yesterdayStr = yesterday.toISOString().split('T')[0];
 
   const isConsecutive = currentPoints.lastCheckInDate === yesterdayStr;
-  const currentStreak = isConsecutive ? currentPoints.checkInStreak + 1 : 1;
+  const currentStreak = isConsecutive
+    ? (currentPoints.checkInStreak || 0) + 1
+    : 1;
 
   let totalPoints = 10; // 基础签到积分
   let totalExperience = 10; // 基础签到经验
@@ -292,7 +294,7 @@ export async function checkIn(
     .set({
       checkInStreak: currentStreak,
       lastCheckInDate: today,
-      totalCheckInDays: currentPoints.totalCheckInDays + 1
+      totalCheckInDays: (currentPoints.totalCheckInDays || 0) + 1
     })
     .where(eq(userPoints.userId, userId));
 
@@ -450,8 +452,8 @@ export async function getUserPointsStats(
     levelName,
     experience: userPointsRecord.experience,
     nextLevelExp: userPointsRecord.nextLevelExp,
-    checkInStreak: userPointsRecord.checkInStreak,
-    totalCheckInDays: userPointsRecord.totalCheckInDays,
+    checkInStreak: userPointsRecord.checkInStreak || 0,
+    totalCheckInDays: userPointsRecord.totalCheckInDays || 0,
     lastCheckInDate: userPointsRecord.lastCheckInDate,
     todayCheckedIn: userPointsRecord.lastCheckInDate === today
   };

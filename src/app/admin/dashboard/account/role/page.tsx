@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { PermissionGuard } from '@/components/auth/permission-guard';
 import { PERMISSIONS } from '@/lib/permission-constants';
 import { Pagination } from '@/components/table/pagination';
@@ -18,7 +18,7 @@ import { useRoleFilters, useRoleManagement } from './hooks';
 import { DEFAULT_PAGINATION, PAGE_SIZE_OPTIONS } from './constants';
 import type { Role } from './types';
 
-export default function RoleManagementPage() {
+function RoleManagementPageContent() {
   // 使用自定义 hooks
   const {
     filters,
@@ -175,5 +175,13 @@ export default function RoleManagementPage() {
         </div>
       </PageContainer>
     </PermissionGuard>
+  );
+}
+
+export default function RoleManagementPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <RoleManagementPageContent />
+    </Suspense>
   );
 }

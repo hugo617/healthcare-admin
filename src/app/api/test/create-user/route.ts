@@ -22,7 +22,7 @@ export async function POST() {
           isSystem: false
         })
         .returning();
-      defaultRole = roleResult[0];
+      defaultRole = (roleResult as any[])[0];
     }
 
     // 创建测试用户
@@ -40,7 +40,7 @@ export async function POST() {
         tenantId: 1
       })
       .returning();
-    const testUser = testUserResult[0];
+    const testUser = (testUserResult as any[])[0];
 
     // 创建管理员用户
     const adminPassword = await bcrypt.hash('Admin@123456', 12);
@@ -57,7 +57,7 @@ export async function POST() {
         tenantId: 1
       })
       .returning();
-    const adminUser = adminUserResult[0];
+    const adminUser = (adminUserResult as any[])[0];
 
     return NextResponse.json({
       success: true,
