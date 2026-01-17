@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { PermissionGuard } from '@/components/auth/permission-guard';
 import { PERMISSIONS } from '@/lib/permission-constants';
 import { Pagination } from '@/components/table/pagination';
@@ -23,7 +23,7 @@ import { useUserFilters, useUserManagement, useViewMode } from './hooks';
 import { User, UserFormData, UserDialogState } from './types';
 import { PAGE_SIZE_OPTIONS, DIALOG_TYPES } from './constants';
 
-export default function UserManagementPage() {
+function UserManagementPageContent() {
   // 使用自定义 hooks
   const {
     filters,
@@ -429,5 +429,13 @@ export default function UserManagementPage() {
       </div>
     </PageContainer>
     // </PermissionGuard>
+  );
+}
+
+export default function UserManagementPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <UserManagementPageContent />
+    </Suspense>
   );
 }

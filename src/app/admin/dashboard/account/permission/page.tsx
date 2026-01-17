@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { PermissionGuard } from '@/components/auth/permission-guard';
 import { PERMISSIONS } from '@/lib/permission-constants';
 import { Pagination } from '@/components/table/pagination';
@@ -32,7 +32,7 @@ import { PermissionTree } from './components/PermissionTree';
 import { PermissionUsageDialog } from './components/PermissionUsageDialog';
 import { PermissionTemplateDialog } from './components/PermissionTemplateDialog';
 
-export default function PermissionManagementPage() {
+function PermissionManagementPageContent() {
   // 视图模式状态
   const [viewMode, setViewMode] = useState<ViewMode>('tree');
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
@@ -243,5 +243,13 @@ export default function PermissionManagementPage() {
         </div>
       </PageContainer>
     </PermissionGuard>
+  );
+}
+
+export default function PermissionManagementPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PermissionManagementPageContent />
+    </Suspense>
   );
 }
