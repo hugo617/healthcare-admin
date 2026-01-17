@@ -15,6 +15,7 @@ async function initSuperAdminRole() {
   if (roleExists.length === 0) {
     const roleResult = await db.insert(roles).values({
       name: '超级管理员',
+      code: 'super_admin',
       description: '系统超级管理员，拥有所有权限',
       isSuper: true
     }).returning();
