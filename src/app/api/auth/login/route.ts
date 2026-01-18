@@ -491,11 +491,18 @@ export async function POST(request: Request) {
         : undefined
     });
 
+    // Cookie secure 设置：优先使用环境变量，生产环境默认为 true，但可通过 COOKIE_SECURE=false 覆盖
+    // 这允许在 HTTP 环境下禁用 secure cookie（用于临时部署场景）
+    const cookieSecure =
+      process.env.COOKIE_SECURE === 'false'
+        ? false
+        : process.env.NODE_ENV === 'production';
+
     // 统一设置 auth_token cookie
     const cookieName = getCookieName(clientType); // 现在返回 'auth_token'
     response.cookies.set(cookieName, token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: cookieSecure,
       sameSite: 'lax',
       path: '/',
       maxAge
@@ -505,7 +512,7 @@ export async function POST(request: Request) {
     if (clientType === 'admin') {
       response.cookies.set('admin_token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: cookieSecure,
         sameSite: 'lax',
         path: '/',
         maxAge
@@ -513,14 +520,14 @@ export async function POST(request: Request) {
     } else if (clientType === 'h5') {
       response.cookies.set('h5_token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: cookieSecure,
         sameSite: 'lax',
         path: '/',
         maxAge
       });
       response.cookies.set('token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: cookieSecure,
         sameSite: 'lax',
         path: '/',
         maxAge

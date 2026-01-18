@@ -233,10 +233,16 @@ export async function POST(request: Request) {
       token
     });
 
+    // Cookie secure 设置：优先使用环境变量，生产环境默认为 true，但可通过 COOKIE_SECURE=false 覆盖
+    const cookieSecure =
+      process.env.COOKIE_SECURE === 'false'
+        ? false
+        : process.env.NODE_ENV === 'production';
+
     // 设置 cookie
     response.cookies.set('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: cookieSecure,
       sameSite: 'strict',
       maxAge: 60 * 60 * 24
     });
