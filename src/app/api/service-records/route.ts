@@ -136,11 +136,62 @@ export async function POST(request: NextRequest) {
     // 2. 解析请求体
     const body = await request.json();
 
+    // 调试日志：打印接收到的数据（不包括签名图片）
+    console.log('接收到的服务记录数据:', {
+      ...body,
+      consultant: body.consultant
+        ? {
+            ...body.consultant,
+            signature: body.consultant?.signature
+              ? `[Base64图片, 长度: ${body.consultant.signature.length}]`
+              : '[无签名]'
+          }
+        : '[无consultant]'
+    });
+
+    // 2.5 数据类型转换和清洗
+    const cleanedBody = {
+      ...body,
+      // 确保 bloodPressure 中的 high 和 low 是数字
+      bloodPressure: {
+        high:
+          typeof body.bloodPressure?.high === 'number'
+            ? body.bloodPressure.high
+            : parseInt(body.bloodPressure?.high) || 0,
+        low:
+          typeof body.bloodPressure?.low === 'number'
+            ? body.bloodPressure.low
+            : parseInt(body.bloodPressure?.low) || 0
+      },
+      // 确保 duration 和 temperature 是数字
+      duration:
+        typeof body.duration === 'number'
+          ? body.duration
+          : parseInt(body.duration) || 45,
+      temperature:
+        typeof body.temperature === 'number'
+          ? body.temperature
+          : parseInt(body.temperature) || 45,
+      // 确保 consultant 存在且字段类型正确
+      consultant: body.consultant || { name: '', signature: '' },
+      // 确保 discomfort.tags 存在
+      discomfort: {
+        tags: Array.isArray(body.discomfort?.tags)
+          ? body.discomfort.tags
+          : ['无'],
+        otherText: body.discomfort?.otherText || ''
+      }
+    };
+
     // 3. 验证请求数据
-    const validatedData = createServiceRecordSchema.safeParse(body);
+    const validatedData = createServiceRecordSchema.safeParse(cleanedBody);
 
     if (!validatedData.success) {
       console.error('Zod验证错误详情:', validatedData.error.issues);
+      console.error(
+        '完整错误信息:',
+        JSON.stringify(validatedData.error.format(), null, 2)
+      );
       return NextResponse.json(
         {
           code: 400,

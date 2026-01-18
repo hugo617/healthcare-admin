@@ -76,7 +76,7 @@ export const createServiceRecordSchema = z.object({
     .max(70, '理疗温度不能高于70℃')
     .default(45),
   feedback: z.string().max(500, '理疗感受不能超过500个字符').default(''),
-  consultant: consultantSchema
+  consultant: consultantSchema.nullish().default({ name: '', signature: '' })
 });
 
 /**
