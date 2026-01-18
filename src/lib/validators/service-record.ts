@@ -59,7 +59,7 @@ const serviceDateSchema = z.string().regex(/^\d{4}\/\d{2}\/\d{2}$/, {
  * 创建服务记录验证 Schema
  */
 export const createServiceRecordSchema = z.object({
-  archiveId: z.string().optional(),
+  archiveId: z.string().nullish(),
   serviceDate: serviceDateSchema.optional(),
   bloodPressure: bloodPressureSchema,
   discomfort: discomfortSchema,
