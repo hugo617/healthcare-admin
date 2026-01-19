@@ -1,5 +1,5 @@
 import Dysmsapi, { SendSmsRequest } from '@alicloud/dysmsapi20170525';
-import * as OpenApi from '@alicloud/openapi-client';
+import * as $OpenApi from '@alicloud/openapi-client';
 
 /**
  * 阿里云短信服务配置
@@ -22,13 +22,28 @@ interface SendResult {
   message?: string;
 }
 
+// 添加超时控制的Promise包装
+function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  errorMessage: string
+): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(errorMessage)), timeoutMs)
+    )
+  ]);
+}
+
 /**
  * 短信服务类
  */
 export class SmsService {
   private static instance: SmsService;
-  private client: Dysmsapi;
+  private client!: Dysmsapi; // 延迟初始化，使用断言操作符
   private config: SmsConfig;
+  private initialized = false;
 
   private constructor() {
     // 从环境变量读取配置
@@ -39,15 +54,28 @@ export class SmsService {
       signName: process.env.ALIYUN_SMS_SIGN_NAME || '',
       templateCode: process.env.ALIYUN_SMS_TEMPLATE_CODE || ''
     };
+  }
 
-    // 初始化阿里云 SMS 客户端
-    const config = new OpenApi.Config({
-      accessKeyId: this.config.accessKeyId,
-      accessKeySecret: this.config.accessKeySecret,
-      regionId: this.config.regionId
-    });
+  /**
+   * 延迟初始化客户端（避免模块加载时就创建）
+   */
+  private initClient() {
+    if (this.initialized) return;
 
-    this.client = new Dysmsapi(config);
+    try {
+      // 初始化阿里云 SMS 客户端
+      const config = new $OpenApi.Config({
+        accessKeyId: this.config.accessKeyId,
+        accessKeySecret: this.config.accessKeySecret,
+        regionId: this.config.regionId
+      });
+
+      this.client = new Dysmsapi(config);
+      this.initialized = true;
+    } catch (error) {
+      console.error('初始化阿里云SMS客户端失败:', error);
+      throw error;
+    }
   }
 
   /**
@@ -61,45 +89,80 @@ export class SmsService {
   }
 
   /**
-   * 发送验证码短信
+   * 发送验证码短信（带重试和超时控制）
    * @param phone 手机号
    * @param code 验证码
    * @returns 发送结果
    */
   async sendVerificationCode(phone: string, code: string): Promise<SendResult> {
-    try {
-      const request = new SendSmsRequest({
-        phoneNumbers: phone,
-        signName: this.config.signName,
-        templateCode: this.config.templateCode,
-        templateParam: JSON.stringify({ code })
-      });
-
-      // 使用正确的 API 方法
-      const response = await this.client.sendSms(request);
-
-      if (response.statusCode === 200 && response.body?.code === 'OK') {
-        return {
-          success: true,
-          requestId: response.body.requestId,
-          code: response.body.code,
-          message: '发送成功'
-        };
-      } else {
-        return {
-          success: false,
-          requestId: response.body?.requestId,
-          code: response.body?.code,
-          message: response.body?.message || '发送失败'
-        };
-      }
-    } catch (error: any) {
-      console.error('发送短信验证码失败:', error);
+    // 检查配置
+    if (!this.config.accessKeyId || !this.config.accessKeySecret) {
       return {
         success: false,
-        message: error.message || '发送短信验证码失败'
+        message: '阿里云短信服务未配置'
       };
     }
+
+    // 延迟初始化
+    if (!this.initialized) {
+      this.initClient();
+    }
+
+    let lastError: Error | null = null;
+
+    // 重试3次
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const request = new SendSmsRequest({
+          phoneNumbers: phone,
+          signName: this.config.signName,
+          templateCode: this.config.templateCode,
+          templateParam: JSON.stringify({ code })
+        });
+
+        // 使用超时控制（10秒超时）
+        const response = await withTimeout(
+          this.client.sendSms(request) as Promise<any>,
+          10000,
+          '阿里云短信API请求超时'
+        );
+
+        if (response?.statusCode === 200 && response?.body?.code === 'OK') {
+          return {
+            success: true,
+            requestId: response.body.requestId,
+            code: response.body.code,
+            message: '发送成功'
+          };
+        } else {
+          return {
+            success: false,
+            requestId: response?.body?.requestId,
+            code: response?.body?.code,
+            message: response?.body?.message || '发送失败'
+          };
+        }
+      } catch (error: any) {
+        lastError = error;
+        console.error(`发送短信验证码失败（第${attempt}次尝试）:`, {
+          message: error.message,
+          code: error.code,
+          stack: error.stack
+        });
+
+        // 最后一次尝试失败才返回错误
+        if (attempt < 3) {
+          // 等待1秒后重试
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      }
+    }
+
+    // 所有重试都失败
+    return {
+      success: false,
+      message: lastError?.message || '发送短信验证码失败，请检查网络连接'
+    };
   }
 
   /**

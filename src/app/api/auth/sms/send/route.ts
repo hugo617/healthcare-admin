@@ -7,6 +7,18 @@ import SmsService, { SmsService as SmsClass } from '@/lib/sms';
 import { successResponse, errorResponse } from '@/service/response';
 import { headers } from 'next/headers';
 
+// 排除阿里云API的代理设置
+if (typeof process !== 'undefined') {
+  // 清除可能干扰阿里云SDK的代理环境变量
+  const aliyunDomains = ['aliyuncs.com', 'alibabacloud.com'];
+  const noProxy = process.env.NO_PROXY || process.env.no_proxy || '';
+  const domainsToExclude = aliyunDomains.join(',');
+  process.env.NO_PROXY = noProxy
+    ? `${noProxy},${domainsToExclude}`
+    : domainsToExclude;
+  process.env.no_proxy = process.env.NO_PROXY;
+}
+
 // 验证码配置（时间单位为毫秒）
 const CODE_EXPIRE_TIME = parseInt(
   process.env.SMS_CODE_EXPIRE_TIME || '300000',
@@ -246,20 +258,42 @@ export async function POST(request: Request) {
     // 生成验证码
     const code = SmsClass.generateCode(CODE_LENGTH);
 
-    // 发送短信
-    const smsResult = await SmsService.sendVerificationCode(phone, code);
+    // 调试模式：跳过短信发送（用于测试）
+    const SKIP_SMS = process.env.SKIP_SMS === 'true';
+    let smsResult: {
+      success: boolean;
+      requestId?: string;
+      code?: string;
+      message?: string;
+    } = {
+      success: true,
+      requestId: 'debug'
+    };
 
-    if (!smsResult.success) {
-      await logger.error('短信验证码', '发送验证码', '短信发送失败', {
+    if (!SKIP_SMS) {
+      // 发送短信
+      smsResult = await SmsService.sendVerificationCode(phone, code);
+
+      if (!smsResult.success) {
+        await logger.error('短信验证码', '发送验证码', '短信发送失败', {
+          phone,
+          ip,
+          code: smsResult.code,
+          message: smsResult.message,
+          requestId: smsResult.requestId,
+          timestamp: new Date().toISOString()
+        });
+
+        return errorResponse(smsResult.message || '发送失败，请稍后重试');
+      }
+    } else {
+      // 调试模式：在日志中输出验证码
+      await logger.warn('短信验证码', '调试模式', '跳过短信发送', {
         phone,
-        ip,
-        code: smsResult.code,
-        message: smsResult.message,
-        requestId: smsResult.requestId,
+        code,
+        message: `验证码是: ${code}`,
         timestamp: new Date().toISOString()
       });
-
-      return errorResponse(smsResult.message || '发送失败，请稍后重试');
     }
 
     // 存储验证码到数据库
