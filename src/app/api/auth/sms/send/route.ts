@@ -214,12 +214,17 @@ async function checkPhoneRateLimit(
 }
 
 export async function POST(request: Request) {
+  console.log('[SMS API] === 短信发送API调用 ===');
   try {
+    console.log('[SMS API] STEP 1: 解析请求体...');
     const { phone } = await request.json();
     const ip = await getClientIp();
+    console.log('[SMS API] STEP 2: phone=', phone, 'ip=', ip);
 
     // 验证手机号格式
+    console.log('[SMS API] STEP 3: 验证手机号格式...');
     if (!SmsClass.validatePhone(phone)) {
+      console.log('[SMS API] ERROR: 手机号格式错误');
       await logger.warn('短信验证码', '发送验证码', '手机号格式错误', {
         phone,
         ip,
@@ -228,10 +233,13 @@ export async function POST(request: Request) {
 
       return errorResponse('手机号格式不正确');
     }
+    console.log('[SMS API] STEP 4: 手机号格式正确');
 
     // 检查IP限流
+    console.log('[SMS API] STEP 5: 检查IP限流...');
     const ipCheck = await checkIpRateLimit(ip);
     if (!ipCheck.allowed) {
+      console.log('[SMS API] ERROR: IP限流拒绝 -', ipCheck.reason);
       await logger.warn('短信验证码', '发送验证码', 'IP限流拒绝', {
         phone,
         ip,
@@ -241,10 +249,13 @@ export async function POST(request: Request) {
 
       return errorResponse(ipCheck.reason!);
     }
+    console.log('[SMS API] STEP 6: IP限流检查通过');
 
     // 检查手机号限流
+    console.log('[SMS API] STEP 7: 检查手机号限流...');
     const phoneCheck = await checkPhoneRateLimit(phone);
     if (!phoneCheck.allowed) {
+      console.log('[SMS API] ERROR: 手机号限流拒绝 -', phoneCheck.reason);
       await logger.warn('短信验证码', '发送验证码', '手机号限流拒绝', {
         phone,
         ip,
@@ -254,12 +265,17 @@ export async function POST(request: Request) {
 
       return errorResponse(phoneCheck.reason!);
     }
+    console.log('[SMS API] STEP 8: 手机号限流检查通过');
 
     // 生成验证码
+    console.log('[SMS API] STEP 9: 生成验证码...');
     const code = SmsClass.generateCode(CODE_LENGTH);
+    console.log('[SMS API] STEP 10: 验证码生成成功, code=', code);
 
     // 调试模式：跳过短信发送（用于测试）
+    console.log('[SMS API] STEP 11: 检查SKIP_SMS环境变量...');
     const SKIP_SMS = process.env.SKIP_SMS === 'true';
+    console.log('[SMS API] SKIP_SMS=', SKIP_SMS);
     let smsResult: {
       success: boolean;
       requestId?: string;
@@ -271,10 +287,13 @@ export async function POST(request: Request) {
     };
 
     if (!SKIP_SMS) {
+      console.log('[SMS API] STEP 12: 调用阿里云短信API...');
       // 发送短信
       smsResult = await SmsService.sendVerificationCode(phone, code);
+      console.log('[SMS API] STEP 13: 短信API返回', JSON.stringify(smsResult));
 
       if (!smsResult.success) {
+        console.log('[SMS API] ERROR: 短信发送失败 -', smsResult.message);
         await logger.error('短信验证码', '发送验证码', '短信发送失败', {
           phone,
           ip,
@@ -287,6 +306,7 @@ export async function POST(request: Request) {
         return errorResponse(smsResult.message || '发送失败，请稍后重试');
       }
     } else {
+      console.log('[SMS API] STEP 12: 调试模式，跳过短信发送');
       // 调试模式：在日志中输出验证码
       await logger.warn('短信验证码', '调试模式', '跳过短信发送', {
         phone,
@@ -295,9 +315,11 @@ export async function POST(request: Request) {
         timestamp: new Date().toISOString()
       });
     }
+    console.log('[SMS API] STEP 14: 短信发送成功');
 
     // 存储验证码到数据库
     // 计算过期时间戳（毫秒）
+    console.log('[SMS API] STEP 15: 准备写入数据库...');
     const now = Date.now();
     const expiresAtTimestamp = now + CODE_EXPIRE_TIME;
 
@@ -313,6 +335,7 @@ export async function POST(request: Request) {
     // 将时间戳转换为 Date 对象存储
     const expiresDate = new Date(expiresAtTimestamp);
 
+    console.log('[SMS API] STEP 16: 插入验证码到数据库...');
     await db.insert(verificationCodes).values({
       phone,
       code,
@@ -321,6 +344,7 @@ export async function POST(request: Request) {
       tenantId: 1,
       ip
     });
+    console.log('[SMS API] STEP 17: 数据库插入成功');
 
     // 记录成功日志
     await logger.info('短信验证码', '发送验证码', '验证码发送成功', {
@@ -331,11 +355,22 @@ export async function POST(request: Request) {
       timestamp: new Date().toISOString()
     });
 
+    console.log('[SMS API] SUCCESS: 验证码发送完成');
     return successResponse({
       message: '验证码已发送',
       expireTime: CODE_EXPIRE_TIME
     });
   } catch (error) {
+    console.log('[SMS API] === CATCH ERROR ===');
+    console.log('[SMS API] Error:', error);
+    console.log(
+      '[SMS API] Error message:',
+      error instanceof Error ? error.message : String(error)
+    );
+    console.log(
+      '[SMS API] Error stack:',
+      error instanceof Error ? error.stack : 'no stack'
+    );
     await logger.error('短信验证码', '发送验证码', '发送过程发生错误', {
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
