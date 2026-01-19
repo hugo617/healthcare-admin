@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 import { db } from '@/db';
 import { users, verificationCodes, roles } from '@/db/schema';
-import { eq, and, gt, desc } from 'drizzle-orm';
+import { eq, and, gt, desc, sql } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import { logger } from '@/lib/logger';
 import {
@@ -219,14 +219,21 @@ export async function POST(request: Request) {
         return unauthorizedResponse('手机号格式不正确');
       }
 
-      // 查询验证码
+      // 查询验证码（查询最近 10 分钟内的记录）
+      // 使用 createdAt 而不是 expiresAt 来避免时区问题
+      const CODE_EXPIRE_SECONDS =
+        parseInt(process.env.SMS_CODE_EXPIRE_TIME || '300000', 10) / 1000; // 转换为秒
+      const validTimeAgo = new Date(
+        Date.now() - CODE_EXPIRE_SECONDS * 1000 * 2
+      ); // 2倍过期时间作为安全范围
+
       const codeRecords = await db
         .select()
         .from(verificationCodes)
         .where(
           and(
             eq(verificationCodes.phone, phone),
-            gt(verificationCodes.expiresAt, new Date())
+            gt(verificationCodes.createdAt, validTimeAgo)
           )
         )
         .orderBy(desc(verificationCodes.createdAt))
@@ -247,6 +254,37 @@ export async function POST(request: Request) {
         );
 
         return unauthorizedResponse('验证码不存在或已过期');
+      }
+
+      // 在 JavaScript 中验证过期时间（基于 createdAt）
+      const now = Date.now();
+      const createdAt = codeRecords[0].createdAt.getTime();
+      const expiresAt = createdAt + CODE_EXPIRE_SECONDS * 1000;
+
+      await logger.info('用户认证', '时间验证', '验证码时间检查', {
+        phone,
+        now,
+        nowISO: new Date(now).toISOString(),
+        createdAt,
+        createdAtISO: new Date(createdAt).toISOString(),
+        expiresAt,
+        expiresAtISO: new Date(expiresAt).toISOString(),
+        isValid: expiresAt > now,
+        timeDiff: expiresAt - now
+      });
+
+      if (expiresAt < now) {
+        await logger.warn('用户认证', '用户登录', '登录失败：验证码已过期', {
+          reason: '验证码已过期',
+          phone,
+          createdAt: codeRecords[0].createdAt.toISOString(),
+          now: new Date(now).toISOString(),
+          loginType: 'sms',
+          clientType,
+          timestamp: new Date().toISOString()
+        });
+
+        return unauthorizedResponse('验证码已过期');
       }
 
       // 验证码是明文存储的，直接进行字符串比较

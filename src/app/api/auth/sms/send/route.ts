@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { verificationCodes } from '@/db/schema';
-import { eq, and, gt, desc } from 'drizzle-orm';
+import { eq, and, gt, desc, sql } from 'drizzle-orm';
 import { logger } from '@/lib/logger';
 import SmsService, { SmsService as SmsClass } from '@/lib/sms';
 import { successResponse, errorResponse } from '@/service/response';
 import { headers } from 'next/headers';
+import { getUTCExpiresTime } from '@/lib/timezone';
 
 // 验证码配置（时间单位为毫秒）
 const CODE_EXPIRE_TIME = parseInt(
@@ -263,19 +264,30 @@ export async function POST(request: Request) {
     }
 
     // 存储验证码到数据库
-    // 注意：Drizzle ORM 会将 Date 对象使用 toISOString() 转换为 UTC 时间存储
-    // PostgreSQL 的 timestamp without time zone 将此值当作会话时区（Asia/Shanghai）时间
-    // 因此需要补偿时区偏移量（+8小时），确保存储的是正确的本地时间
+    // 计算过期时间戳（毫秒）
     const now = Date.now();
-    const localExpiresAt = now + CODE_EXPIRE_TIME;
-    // 补偿时区偏移：toISOString() 会减去 8 小时（UTC+8 -> UTC），所以我们需要加 8 小时
-    const expiresAt = new Date(localExpiresAt + 8 * 60 * 60 * 1000);
+    const expiresAtTimestamp = now + CODE_EXPIRE_TIME;
+
+    await logger.info('短信验证码', '时间计算', '过期时间计算详情', {
+      now,
+      nowDate: new Date(now).toISOString(),
+      expireTime: CODE_EXPIRE_TIME,
+      expiresAtTimestamp,
+      expiresAtDate: new Date(expiresAtTimestamp).toISOString(),
+      phone
+    });
+
+    // 将时间戳转换为 Date 对象存储
+    // 注意：这里我们需要处理时区问题
+    // PostgreSQL 的 timestamp without time zone 会将会话时区的时间存储
+    // 所以我们需要将 UTC 时间戳转换为本地时间字符串
+    const expiresDate = new Date(expiresAtTimestamp);
 
     await db.insert(verificationCodes).values({
       phone,
       code,
       type: 'login',
-      expiresAt,
+      expiresAt: expiresDate,
       tenantId: 1,
       ip
     });
