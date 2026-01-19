@@ -75,9 +75,8 @@ export class SmsService {
         templateParam: JSON.stringify({ code })
       });
 
-      // 设置请求配置，确保正确处理中文
-      const runtime = new OpenApi.RuntimeOptions({});
-      const response = await this.client.sendSmsWithOptions(request, runtime);
+      // 使用正确的 API 方法
+      const response = await this.client.sendSms(request);
 
       if (response.statusCode === 200 && response.body?.code === 'OK') {
         return {

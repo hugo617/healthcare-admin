@@ -34,7 +34,7 @@
   "author": "Guizimo",
   "license": "MIT",
   "dependencies": {
-    "@alicloud/dysmsapi20170525": "^4.3.1",
+    "@alicloud/dysmsapi20170525": "^4.4.0",
     "@alicloud/openapi-client": "^0.4.15",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-alert-dialog": "^1.1.6",

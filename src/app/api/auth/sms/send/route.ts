@@ -6,7 +6,6 @@ import { logger } from '@/lib/logger';
 import SmsService, { SmsService as SmsClass } from '@/lib/sms';
 import { successResponse, errorResponse } from '@/service/response';
 import { headers } from 'next/headers';
-import { getUTCExpiresTime } from '@/lib/timezone';
 
 // 验证码配置（时间单位为毫秒）
 const CODE_EXPIRE_TIME = parseInt(
@@ -247,34 +246,20 @@ export async function POST(request: Request) {
     // 生成验证码
     const code = SmsClass.generateCode(CODE_LENGTH);
 
-    // 调试模式：跳过短信发送（用于测试）
-    const SKIP_SMS = process.env.SKIP_SMS === 'true';
-    let smsResult = { success: true, requestId: 'debug' };
+    // 发送短信
+    const smsResult = await SmsService.sendVerificationCode(phone, code);
 
-    if (!SKIP_SMS) {
-      // 发送短信
-      smsResult = await SmsService.sendVerificationCode(phone, code);
-
-      if (!smsResult.success) {
-        await logger.error('短信验证码', '发送验证码', '短信发送失败', {
-          phone,
-          ip,
-          code: smsResult.code,
-          message: smsResult.message,
-          requestId: smsResult.requestId,
-          timestamp: new Date().toISOString()
-        });
-
-        return errorResponse(smsResult.message || '发送失败，请稍后重试');
-      }
-    } else {
-      // 调试模式：在日志中输出验证码
-      await logger.warn('短信验证码', '调试模式', '跳过短信发送', {
+    if (!smsResult.success) {
+      await logger.error('短信验证码', '发送验证码', '短信发送失败', {
         phone,
-        code,
-        message: `验证码是: ${code}`,
+        ip,
+        code: smsResult.code,
+        message: smsResult.message,
+        requestId: smsResult.requestId,
         timestamp: new Date().toISOString()
       });
+
+      return errorResponse(smsResult.message || '发送失败，请稍后重试');
     }
 
     // 存储验证码到数据库
@@ -292,9 +277,6 @@ export async function POST(request: Request) {
     });
 
     // 将时间戳转换为 Date 对象存储
-    // 注意：这里我们需要处理时区问题
-    // PostgreSQL 的 timestamp without time zone 会将会话时区的时间存储
-    // 所以我们需要将 UTC 时间戳转换为本地时间字符串
     const expiresDate = new Date(expiresAtTimestamp);
 
     await db.insert(verificationCodes).values({
