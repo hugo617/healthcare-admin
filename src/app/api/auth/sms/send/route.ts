@@ -247,20 +247,34 @@ export async function POST(request: Request) {
     // 生成验证码
     const code = SmsClass.generateCode(CODE_LENGTH);
 
-    // 发送短信
-    const smsResult = await SmsService.sendVerificationCode(phone, code);
+    // 调试模式：跳过短信发送（用于测试）
+    const SKIP_SMS = process.env.SKIP_SMS === 'true';
+    let smsResult = { success: true, requestId: 'debug' };
 
-    if (!smsResult.success) {
-      await logger.error('短信验证码', '发送验证码', '短信发送失败', {
+    if (!SKIP_SMS) {
+      // 发送短信
+      smsResult = await SmsService.sendVerificationCode(phone, code);
+
+      if (!smsResult.success) {
+        await logger.error('短信验证码', '发送验证码', '短信发送失败', {
+          phone,
+          ip,
+          code: smsResult.code,
+          message: smsResult.message,
+          requestId: smsResult.requestId,
+          timestamp: new Date().toISOString()
+        });
+
+        return errorResponse(smsResult.message || '发送失败，请稍后重试');
+      }
+    } else {
+      // 调试模式：在日志中输出验证码
+      await logger.warn('短信验证码', '调试模式', '跳过短信发送', {
         phone,
-        ip,
-        code: smsResult.code,
-        message: smsResult.message,
-        requestId: smsResult.requestId,
+        code,
+        message: `验证码是: ${code}`,
         timestamp: new Date().toISOString()
       });
-
-      return errorResponse(smsResult.message || '发送失败，请稍后重试');
     }
 
     // 存储验证码到数据库
