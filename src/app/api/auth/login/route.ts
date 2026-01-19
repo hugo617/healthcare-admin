@@ -258,7 +258,7 @@ export async function POST(request: Request) {
 
       // 在 JavaScript 中验证过期时间（基于 createdAt）
       const now = Date.now();
-      const createdAt = codeRecords[0].createdAt.getTime();
+      const createdAt = codeRecords[0]!.createdAt.getTime();
       const expiresAt = createdAt + CODE_EXPIRE_SECONDS * 1000;
 
       await logger.info('用户认证', '时间验证', '验证码时间检查', {
