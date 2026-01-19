@@ -258,7 +258,11 @@ export async function POST(request: Request) {
 
       // 在 JavaScript 中验证过期时间（基于 createdAt）
       const now = Date.now();
-      const createdAt = codeRecords[0]!.createdAt.getTime();
+      const record = codeRecords[0]!;
+      if (!record.createdAt) {
+        return unauthorizedResponse('验证码数据异常');
+      }
+      const createdAt = record.createdAt.getTime();
       const expiresAt = createdAt + CODE_EXPIRE_SECONDS * 1000;
 
       await logger.info('用户认证', '时间验证', '验证码时间检查', {
@@ -277,7 +281,7 @@ export async function POST(request: Request) {
         await logger.warn('用户认证', '用户登录', '登录失败：验证码已过期', {
           reason: '验证码已过期',
           phone,
-          createdAt: codeRecords[0].createdAt.toISOString(),
+          createdAt: record.createdAt.toISOString(),
           now: new Date(now).toISOString(),
           loginType: 'sms',
           clientType,
@@ -288,7 +292,7 @@ export async function POST(request: Request) {
       }
 
       // 验证码是明文存储的，直接进行字符串比较
-      const isCodeValid = code === codeRecords[0].code;
+      const isCodeValid = code === record.code;
       if (!isCodeValid) {
         await logger.warn('用户认证', '用户登录', '登录失败：验证码错误', {
           reason: '验证码错误',
@@ -302,7 +306,7 @@ export async function POST(request: Request) {
       }
 
       // 检查验证码是否已被使用
-      if (codeRecords[0].usedAt) {
+      if (record.usedAt) {
         await logger.warn('用户认证', '用户登录', '登录失败：验证码已被使用', {
           reason: '验证码已被使用',
           phone,
@@ -317,7 +321,7 @@ export async function POST(request: Request) {
       // 删除已使用的验证码
       await db
         .delete(verificationCodes)
-        .where(eq(verificationCodes.id, codeRecords[0].id));
+        .where(eq(verificationCodes.id, record.id));
 
       // 查询用户
       user = await db
